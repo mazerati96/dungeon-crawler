@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="dungeon-crawler/dungeon-crawler.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+</Solution>
