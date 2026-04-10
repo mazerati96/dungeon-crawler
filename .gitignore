@@ -363,4 +363,3 @@ MigrationBackup/
 FodyWeavers.xsd
 #ignore db.php
 config/db.php
-api/auth.php
