@@ -1,3 +1,3 @@
 <?php
-header("Location: dungeon-crawler/login.php");
+header("Location: login.php");
 exit;
