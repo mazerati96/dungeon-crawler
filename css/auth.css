@@ -1,0 +1,210 @@
+/* ============================================================
+   css/auth.css  —  Login & Register page
+   LED / HUD aesthetic: dark bg, cyan electric glow
+============================================================ */
+
+:root {
+    --clr-bg: #000d1a;
+    --clr-panel: rgba(0, 20, 40, 0.85);
+    --clr-border: #00c8ff;
+    --clr-glow: #00f0ff;
+    --clr-text: #c0f0ff;
+    --clr-dim: #406070;
+    --clr-accent: #0080ff;
+    --clr-warn: #ff4444;
+    --font-hud: 'Orbitron', sans-serif;
+    --font-mono: 'Share Tech Mono', monospace;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--clr-bg);
+    color: var(--clr-text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#particles-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* ── Container ─────────────────────────────────────────────── */
+.auth-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem 2rem;
+    background: var(--clr-panel);
+    border: 1px solid var(--clr-border);
+    box-shadow: 0 0 24px rgba(0, 200, 255, 0.15), 0 0 60px rgba(0, 200, 255, 0.07), inset 0 0 30px rgba(0, 100, 200, 0.05);
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+
+/* ── Logo ──────────────────────────────────────────────────── */
+.auth-logo {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.logo-glyph {
+    font-size: 2.5rem;
+    color: var(--clr-glow);
+    text-shadow: 0 0 20px var(--clr-glow), 0 0 40px var(--clr-accent);
+    animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        text-shadow: 0 0 20px var(--clr-glow), 0 0 40px var(--clr-accent);
+    }
+
+    50% {
+        text-shadow: 0 0 30px var(--clr-glow), 0 0 60px var(--clr-accent), 0 0 80px var(--clr-glow);
+    }
+}
+
+.logo-title {
+    font-family: var(--font-hud);
+    font-size: 1.25rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    color: var(--clr-glow);
+    text-shadow: 0 0 12px var(--clr-glow);
+    margin-top: 0.5rem;
+}
+
+.logo-sub {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--clr-dim);
+    margin-top: 0.25rem;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────── */
+.auth-tabs {
+    display: flex;
+    gap: 1px;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--clr-border);
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 0.6rem;
+    background: transparent;
+    border: none;
+    color: var(--clr-dim);
+    font-family: var(--font-hud);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: color 0.2s, text-shadow 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+    .auth-tab.active {
+        color: var(--clr-glow);
+        text-shadow: 0 0 10px var(--clr-glow);
+        border-bottom-color: var(--clr-glow);
+    }
+
+/* ── Form ──────────────────────────────────────────────────── */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+    .auth-form.hidden {
+        display: none;
+    }
+
+.field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.field-label {
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--clr-dim);
+}
+
+.hud-input {
+    background: rgba(0, 30, 60, 0.8);
+    border: 1px solid var(--clr-accent);
+    color: var(--clr-text);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    padding: 0.6rem 0.75rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+}
+
+    .hud-input:focus {
+        border-color: var(--clr-glow);
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    }
+
+    .hud-input::placeholder {
+        color: var(--clr-dim);
+    }
+
+/* ── Button ────────────────────────────────────────────────── */
+.hud-btn {
+    background: transparent;
+    border: 1px solid var(--clr-glow);
+    color: var(--clr-glow);
+    font-family: var(--font-hud);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.2s, box-shadow 0.2s;
+    margin-top: 0.25rem;
+}
+
+    .hud-btn:hover:not(:disabled) {
+        background: rgba(0, 240, 255, 0.1);
+        box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+    }
+
+    .hud-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+/* ── Messages ──────────────────────────────────────────────── */
+.form-message {
+    font-size: 0.8rem;
+    min-height: 1.2em;
+    transition: color 0.2s;
+}
+
+    .form-message.error {
+        color: var(--clr-warn);
+    }
+
+    .form-message.success {
+        color: #00ff80;
+        text-shadow: 0 0 6px #00ff80;
+    }
