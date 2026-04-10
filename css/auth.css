@@ -208,3 +208,60 @@ body {
         color: #00ff80;
         text-shadow: 0 0 6px #00ff80;
     }
+
+/* ── Admin Key toggle (register form) ──────────────────────── */
+.admin-key-group {
+    margin-top: 0.25rem;
+}
+
+.admin-key-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.4rem 0;
+    color: var(--clr-dim);
+    transition: color 0.2s;
+    user-select: none;
+}
+
+    .admin-key-toggle:hover {
+        color: rgba(255,170,0,0.8);
+    }
+
+.admin-key-icon {
+    font-size: 0.85rem;
+    color: rgba(255,170,0,0.7);
+}
+
+.admin-key-label {
+    font-family: var(--font-hud);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    flex: 1;
+}
+
+.admin-key-chevron {
+    font-size: 0.7rem;
+}
+
+.admin-key-reveal {
+    padding-top: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.admin-key-input {
+    border-color: rgba(255,170,0,0.4) !important;
+}
+
+    .admin-key-input:focus {
+        border-color: rgba(255,170,0,0.9) !important;
+        box-shadow: 0 0 8px rgba(255,170,0,0.2) !important;
+    }
+
+.admin-key-hint {
+    font-size: 0.65rem;
+    color: var(--clr-dim);
+}

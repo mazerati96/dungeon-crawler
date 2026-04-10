@@ -1,36 +1,33 @@
 <?php
 // ============================================================
 //  api/character.php  —  CRUD for character sheet data
-//
-//  All responses are JSON.
-//  Requires an active session (user_id).
-//
-//  Actions (POST param "action"):
-//    list       → return all characters for current user
-//    create     → create new character, return id + name
-//    load       → return sheet_json for a character id
-//    save       → upsert sheet_json for a character id
-//    rename     → rename a character
-//    delete     → delete a character
+//  Now logs saves and deletes to audit_log
 // ============================================================
 
 session_start();
 header('Content-Type: application/json');
 require_once __DIR__ . '/../config/db.php';
 
-// Auth gate
 if (empty($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Not authenticated.']);
-    exit;
+    echo json_encode(['success' => false, 'message' => 'Not authenticated.']); exit;
 }
 
 $uid    = (int) $_SESSION['user_id'];
+$uname  = $_SESSION['username'] ?? '';
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $db     = get_db();
 
+function audit_char(PDO $db, ?int $uid, ?string $username, string $action, ?string $detail = null): void {
+    $ip = substr($_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '', 0, 45);
+    $db->prepare('INSERT INTO audit_log (user_id, username, action, detail, ip) VALUES (?,?,?,?,?)')
+       ->execute([$uid, $username, $action, $detail, $ip]);
+}
+
 // ── list ─────────────────────────────────────────────────────
 if ($action === 'list') {
-    $stmt = $db->prepare('SELECT id, name, updated_at FROM characters WHERE user_id = ? ORDER BY updated_at DESC');
+    $stmt = $db->prepare(
+        'SELECT id, name, updated_at FROM characters WHERE user_id = ? ORDER BY updated_at DESC'
+    );
     $stmt->execute([$uid]);
     echo json_encode(['success' => true, 'characters' => $stmt->fetchAll()]);
     exit;
@@ -38,22 +35,17 @@ if ($action === 'list') {
 
 // ── create ───────────────────────────────────────────────────
 if ($action === 'create') {
-    $name = trim($_POST['name'] ?? 'New Crawler');
-    if (!$name) $name = 'New Crawler';
-
+    $name = trim($_POST['name'] ?? 'New Crawler') ?: 'New Crawler';
     $stmt = $db->prepare('INSERT INTO characters (user_id, name) VALUES (?, ?)');
     $stmt->execute([$uid, $name]);
-    $cid = $db->lastInsertId();
-
-    // Seed empty sheet data
-    $stmt2 = $db->prepare('INSERT INTO character_data (character_id, sheet_json) VALUES (?, ?)');
-    $stmt2->execute([$cid, '{}']);
-
+    $cid = (int) $db->lastInsertId();
+    $db->prepare('INSERT INTO character_data (character_id, sheet_json) VALUES (?, ?)')->execute([$cid, '{}']);
+    audit_char($db, $uid, $uname, 'create_char', "Created character: $name (id=$cid)");
     echo json_encode(['success' => true, 'id' => $cid, 'name' => $name]);
     exit;
 }
 
-// ── Helpers that need a character id ─────────────────────────
+// ── helpers needing a character id ───────────────────────────
 $cid = (int) ($_POST['id'] ?? $_GET['id'] ?? 0);
 
 function owns_character(PDO $db, int $uid, int $cid): bool {
@@ -62,9 +54,10 @@ function owns_character(PDO $db, int $uid, int $cid): bool {
     return (bool) $s->fetch();
 }
 
-if (!$cid || !owns_character($db, $uid, $cid)) {
-    echo json_encode(['success' => false, 'message' => 'Character not found.']);
-    exit;
+// Admins may access any character
+$isAdmin = !empty($_SESSION['is_admin']);
+if (!$cid || (!$isAdmin && !owns_character($db, $uid, $cid))) {
+    echo json_encode(['success' => false, 'message' => 'Character not found.']); exit;
 }
 
 // ── load ─────────────────────────────────────────────────────
@@ -79,20 +72,17 @@ if ($action === 'load') {
 
 // ── save ─────────────────────────────────────────────────────
 if ($action === 'save') {
-    $raw  = $_POST['sheet_json'] ?? '{}';
-    // Validate JSON
+    $raw = $_POST['sheet_json'] ?? '{}';
     json_decode($raw);
     if (json_last_error() !== JSON_ERROR_NONE) {
-        echo json_encode(['success' => false, 'message' => 'Invalid JSON payload.']);
-        exit;
+        echo json_encode(['success' => false, 'message' => 'Invalid JSON.']); exit;
     }
-
-    $stmt = $db->prepare('
-        INSERT INTO character_data (character_id, sheet_json)
-        VALUES (?, ?)
-        ON DUPLICATE KEY UPDATE sheet_json = VALUES(sheet_json)
-    ');
-    $stmt->execute([$cid, $raw]);
+    $db->prepare(
+        'INSERT INTO character_data (character_id, sheet_json)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE sheet_json = VALUES(sheet_json)'
+    )->execute([$cid, $raw]);
+    audit_char($db, $uid, $uname, 'save_sheet', "Saved character id=$cid");
     echo json_encode(['success' => true]);
     exit;
 }
@@ -101,16 +91,19 @@ if ($action === 'save') {
 if ($action === 'rename') {
     $name = trim($_POST['name'] ?? '');
     if (!$name) { echo json_encode(['success' => false, 'message' => 'Name required.']); exit; }
-    $stmt = $db->prepare('UPDATE characters SET name = ? WHERE id = ?');
-    $stmt->execute([$name, $cid]);
+    $db->prepare('UPDATE characters SET name = ? WHERE id = ?')->execute([$name, $cid]);
     echo json_encode(['success' => true]);
     exit;
 }
 
 // ── delete ───────────────────────────────────────────────────
 if ($action === 'delete') {
-    $stmt = $db->prepare('DELETE FROM characters WHERE id = ?');
-    $stmt->execute([$cid]);
+    // get name for audit
+    $row = $db->prepare('SELECT name FROM characters WHERE id = ?');
+    $row->execute([$cid]);
+    $charName = $row->fetchColumn() ?: 'unknown';
+    $db->prepare('DELETE FROM characters WHERE id = ?')->execute([$cid]);
+    audit_char($db, $uid, $uname, 'delete_char', "Deleted character: $charName (id=$cid)");
     echo json_encode(['success' => true]);
     exit;
 }
