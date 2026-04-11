@@ -268,3 +268,42 @@ body {
     font-size: 0.65rem;
     color: var(--clr-dim);
 }
+
+/* ── Password eye toggle ───────────────────────────────────── */
+.input-eye-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+    .input-eye-wrap .hud-input {
+        padding-right: 2.5rem; /* room for the button */
+    }
+
+.eye-btn {
+    position: absolute;
+    right: 0.6rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--clr-dim);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+    line-height: 0;
+}
+
+    .eye-btn:hover {
+        color: var(--clr-glow);
+    }
+
+.eye-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+    .eye-icon.hidden {
+        display: none;
+    }
