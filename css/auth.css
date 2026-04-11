@@ -28,9 +28,11 @@ body {
     font-family: var(--font-mono);
     min-height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 2rem 1rem;
 }
 
 #particles-canvas {
@@ -46,6 +48,7 @@ body {
     z-index: 1;
     width: 100%;
     max-width: 420px;
+    margin: auto;
     padding: 2.5rem 2rem;
     background: var(--clr-panel);
     border: 1px solid var(--clr-border);
