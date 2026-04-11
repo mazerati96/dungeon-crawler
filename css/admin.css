@@ -1,6 +1,6 @@
 /* ============================================================
    css/admin.css  —  System AI Dashboard
-   Same LED base as hud.css but with amber/red System AI accent
+   Same LED base as hud.css but with red/red System AI accent
 ============================================================ */
 
 :root {
@@ -13,10 +13,10 @@
     --clr-text: #c0f0ff;
     --clr-text-dim: #406070;
     --clr-label: #5090a0;
-    /* System AI amber accent (replaces cyan for admin chrome) */
-    --clr-ai: #ffaa00;
-    --clr-ai-dim: #664400;
-    --clr-ai-glow: rgba(255, 170, 0, 0.35);
+    /* System AI red accent (replaces cyan for admin chrome) */
+    --clr-ai: #ff1a3a;
+    --clr-ai-dim: #4d0011;
+    --clr-ai-glow: rgba(255, 26, 58, 0.35);
     /* Danger */
     --clr-warn: #ff4444;
     --clr-warn-glow: rgba(255, 68, 68, 0.3);
@@ -56,7 +56,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   TOP BAR — amber System AI brand
+   TOP BAR — red System AI brand
 ═══════════════════════════════════════════════════════════ */
 .admin-topbar {
     position: fixed;
@@ -84,7 +84,7 @@ body {
 .ai-logo-glyph {
     font-size: 1.4rem;
     color: var(--clr-ai);
-    text-shadow: 0 0 14px var(--clr-ai), 0 0 28px rgba(255,170,0,0.4);
+    text-shadow: 0 0 14px var(--clr-ai), 0 0 28px rgba(255,26,58,0.4);
     animation: ai-pulse 3s ease-in-out infinite;
 }
 
@@ -94,7 +94,7 @@ body {
     }
 
     50% {
-        text-shadow: 0 0 24px var(--clr-ai), 0 0 48px rgba(255,170,0,0.5);
+        text-shadow: 0 0 24px var(--clr-ai), 0 0 48px rgba(255,26,58,0.5);
     }
 }
 
@@ -150,7 +150,7 @@ body {
 }
 
     .hud-btn-sm:hover {
-        background: rgba(255,170,0,0.08);
+        background: rgba(255,26,58,0.08);
         box-shadow: 0 0 10px var(--clr-ai-glow);
         border-color: var(--clr-ai);
     }
@@ -198,14 +198,14 @@ body {
 
     .tab-btn:hover {
         color: var(--clr-text);
-        background: rgba(255,170,0,0.03);
+        background: rgba(255,26,58,0.03);
     }
 
     .tab-btn.active {
         color: var(--clr-ai);
         text-shadow: 0 0 8px var(--clr-ai);
         border-bottom-color: var(--clr-ai);
-        background: rgba(255,170,0,0.04);
+        background: rgba(255,26,58,0.04);
     }
 
 .tab-icon {
@@ -267,7 +267,7 @@ body {
     }
 
     .ai-card:hover {
-        border-color: rgba(255,170,0,0.3);
+        border-color: rgba(255,26,58,0.3);
     }
 
 .card-header {
@@ -438,7 +438,7 @@ body {
     }
 
     .user-table tr:hover td {
-        background: rgba(255,170,0,0.03);
+        background: rgba(255,26,58,0.03);
     }
 
     .user-table tr.banned td {
@@ -531,7 +531,7 @@ body {
     }
 
         .btn-xs.json:hover {
-            background: rgba(255,170,0,0.1);
+            background: rgba(255,26,58,0.1);
         }
 
     .btn-xs.save {
@@ -724,7 +724,7 @@ body {
     }
 
     .audit-table tr:hover td {
-        background: rgba(255,170,0,0.02);
+        background: rgba(255,26,58,0.02);
     }
 
 .audit-action {
@@ -764,8 +764,8 @@ body {
     }
 
     .audit-action.ban_user {
-        color: #ff6600;
-        border-color: #ff6600;
+        color: #ff1a3a;
+        border-color: #ff1a3a;
     }
 
     .audit-action.unban_user {
