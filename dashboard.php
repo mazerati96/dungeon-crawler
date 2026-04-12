@@ -69,6 +69,9 @@ $username = htmlspecialchars($_SESSION['username']);
         <button class="tab-btn" data-tab="map">
             <span class="tab-icon">⊕</span> MAP
         </button>
+        <button class="tab-btn" data-tab="saferoom">
+            <span class="tab-icon">⌂</span> SAFE ROOM
+        </button>
     </nav>
 
     <!-- ══════════════════════════════════════════════════════
@@ -128,16 +131,16 @@ $username = htmlspecialchars($_SESSION['username']);
                             <input class="hud-field num" type="number" data-field="manaMax" placeholder="50" />
                         </div>
                         <div class="vital-row">
-                            <span class="vital-name stamina">STAMINA</span>
-                            <input class="hud-field num" type="number" data-field="staminaCurrent" placeholder="80" />
+                            <span class="vital-name momentum">MOMENTUM</span>
+                            <input class="hud-field num" type="number" data-field="momentumCurrent" placeholder="0" />
                             <span class="vital-sep">/</span>
-                            <input class="hud-field num" type="number" data-field="staminaMax" placeholder="80" />
+                            <input class="hud-field num" type="number" data-field="momentumMax" placeholder="10" />
                         </div>
                         <div class="vital-row">
-                            <span class="vital-name sanity">SANITY</span>
-                            <input class="hud-field num" type="number" data-field="sanityCurrent" placeholder="100" />
+                            <span class="vital-name morale">MORALE</span>
+                            <input class="hud-field num" type="number" data-field="moraleCurrent" placeholder="100" />
                             <span class="vital-sep">/</span>
-                            <input class="hud-field num" type="number" data-field="sanityMax" placeholder="100" />
+                            <input class="hud-field num" type="number" data-field="moraleMax" placeholder="100" />
                         </div>
                     </div>
                 </div>
@@ -447,25 +450,144 @@ $username = htmlspecialchars($_SESSION['username']);
                     </div>
                     <div class="area-list" id="areaList"></div>
                     <div class="card-header" style="margin-top:1rem">⊕ MAP NOTES</div>
-                    <textarea class="hud-textarea" data-field="mapNotes" placeholder="Traps spotted, secret doors, NPC locations, safe room upgrades…" rows="5"></textarea>
-                </div>
-
-                <!-- Safe room upgrades -->
-                <div class="hud-card">
-                    <div class="card-header">⊕ SAFE ROOM UPGRADES</div>
-                    <div class="safe-upgrades">
-                        <label class="upgrade-row"><input type="checkbox" data-field="upgradeFood" /> Food Box (Kitchen)</label>
-                        <label class="upgrade-row"><input type="checkbox" data-field="upgradeStorage" /> Storage Unit</label>
-                        <label class="upgrade-row"><input type="checkbox" data-field="upgradeDeSleeve" /> De-Sleeving Box</label>
-                        <label class="upgrade-row"><input type="checkbox" data-field="upgradeDeity" /> Deity's Box</label>
-                        <label class="upgrade-row"><input type="checkbox" data-field="upgradeWorkshop" /> Demolition Workshop</label>
-                        <label class="upgrade-row"><input type="checkbox" data-field="upgradeScratchpad" /> Second Scratch Pad</label>
-                    </div>
-                    <div class="card-header" style="margin-top:1rem">⊕ SPONSOR</div>
-                    <input class="hud-field" type="text" data-field="sponsorName" placeholder="Sponsor name…" style="width:100%" />
-                    <textarea class="hud-textarea" data-field="sponsorNotes" placeholder="Sponsor relationship notes…" rows="3" style="margin-top:0.5rem"></textarea>
+                    <textarea class="hud-textarea" data-field="mapNotes" placeholder="Traps spotted, secret doors, NPC locations, hazards…" rows="5"></textarea>
                 </div>
             </div>
+        </section>
+
+        <!-- ── TAB: SAFE ROOM ────────────────────────────────── -->
+        <section class="tab-panel" id="tab-saferoom">
+
+            <!-- Safe Room sub-tab nav -->
+            <nav class="sr-subnav" id="srSubnav">
+                <button class="sr-tab active" data-srtab="general">⬡ GENERAL</button>
+                <button class="sr-tab" data-srtab="bedroom">🛏 BEDROOM</button>
+                <button class="sr-tab" data-srtab="training">⚔ TRAINING</button>
+                <button class="sr-tab" data-srtab="crafting">⚒ CRAFTING</button>
+                <button class="sr-tab" data-srtab="social">📡 SOCIAL</button>
+            </nav>
+
+            <!-- ── GENERAL ─────────────────────────────────── -->
+            <div class="sr-panel active" id="srp-general">
+                <div class="panel-grid">
+                    <div class="hud-card span-2">
+                        <div class="card-header">⬡ SAFE ROOM — GENERAL UPGRADES</div>
+                        <div class="safe-upgrades">
+                            <label class="upgrade-row"><input type="checkbox" data-field="upgradeFood" /> Food Box (Kitchen)</label>
+                            <label class="upgrade-row"><input type="checkbox" data-field="upgradeStorage" /> Storage Unit</label>
+                            <label class="upgrade-row"><input type="checkbox" data-field="upgradeDeSleeve" /> De-Sleeving Box</label>
+                            <label class="upgrade-row"><input type="checkbox" data-field="upgradeDeity" /> Deity's Box</label>
+                            <label class="upgrade-row"><input type="checkbox" data-field="upgradeWorkshop" /> Demolition Workshop</label>
+                            <label class="upgrade-row"><input type="checkbox" data-field="upgradeScratchpad" /> Second Scratch Pad</label>
+                        </div>
+                        <div class="card-header" style="margin-top:1rem">⬡ SAFE ROOM LOCATION</div>
+                        <div class="identity-grid" style="grid-template-columns:1fr 1fr 1fr">
+                            <div class="id-field"><label>FLOOR / SECTOR</label><input class="hud-field" type="text" data-field="safeRoom" placeholder="Floor 4 — Sector B" /></div>
+                            <div class="id-field"><label>ROOM TIER</label><input class="hud-field" type="text" data-field="safeRoomTier" placeholder="Standard / Upgraded…" /></div>
+                            <div class="id-field"><label>GOLD ON HAND</label><input class="hud-field" type="number" data-field="gold" placeholder="0" /></div>
+                        </div>
+                        <div class="card-header" style="margin-top:1rem">⬡ GENERAL NOTES</div>
+                        <textarea class="hud-textarea" data-field="safeRoomNotes" placeholder="Safe room condition, special features, what's stocked…" rows="3"></textarea>
+                    </div>
+                    <div class="hud-card">
+                        <div class="card-header">⬡ SPONSOR</div>
+                        <div class="id-field" style="margin-bottom:.6rem"><label>SPONSOR NAME</label><input class="hud-field" type="text" data-field="sponsorName" placeholder="Sponsor name…" style="width:100%" /></div>
+                        <div class="id-field" style="margin-bottom:.6rem"><label>RELATIONSHIP STATUS</label><input class="hud-field" type="text" data-field="sponsorStatus" placeholder="Friendly / Neutral / Strained…" style="width:100%" /></div>
+                        <div class="id-field" style="margin-bottom:.6rem"><label>CONTRACT VALUE</label><input class="hud-field" type="text" data-field="sponsorValue" placeholder="0 gold / barter…" style="width:100%" /></div>
+                        <textarea class="hud-textarea" data-field="sponsorNotes" placeholder="Contract terms, perks, obligations, sponsor personality…" rows="5"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── BEDROOM ─────────────────────────────────── -->
+            <div class="sr-panel" id="srp-bedroom">
+                <div class="panel-grid">
+                    <div class="hud-card span-3">
+                        <div class="card-header">🛏 BEDROOM UPGRADES
+                            <span style="color:var(--clr-text-dim);font-size:.55rem;font-family:var(--font-mono)">Upgrades give passive bonuses — note the effect in the bonus field</span>
+                        </div>
+                        <div class="sr-upgrade-add-row">
+                            <input class="hud-input" type="text" id="bedName" placeholder="Upgrade name…" style="flex:2" />
+                            <input class="hud-input sm" type="text" id="bedBonus" placeholder="Bonus / effect…" style="flex:2" />
+                            <input class="hud-input sm" type="text" id="bedCost" placeholder="Gold cost" style="width:110px" />
+                            <button class="hud-btn-sm" onclick="HUD.addSrUpgrade('bedroom')">ADD</button>
+                        </div>
+                        <!-- Pre-built bedroom upgrades render here + custom ones -->
+                        <div class="sr-upgrade-list" id="bedroomList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── TRAINING ────────────────────────────────── -->
+            <div class="sr-panel" id="srp-training">
+                <div class="panel-grid">
+                    <div class="hud-card span-3">
+                        <div class="card-header">⚔ TRAINING ROOMS</div>
+                        <div class="sr-upgrade-add-row">
+                            <input class="hud-input" type="text" id="trainName" placeholder="Room name…" style="flex:2" />
+                            <input class="hud-input sm" type="text" id="trainBonus" placeholder="Stat benefit…" style="flex:2" />
+                            <input class="hud-input sm" type="text" id="trainCost" placeholder="Gold cost" style="width:110px" />
+                            <button class="hud-btn-sm" onclick="HUD.addSrUpgrade('training')">ADD</button>
+                        </div>
+                        <div class="sr-upgrade-list" id="trainingList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── CRAFTING ────────────────────────────────── -->
+            <div class="sr-panel" id="srp-crafting">
+                <div class="panel-grid">
+                    <div class="hud-card span-3">
+                        <div class="card-header">⚒ CRAFTING TABLES
+                            <span style="color:var(--clr-text-dim);font-size:.55rem;font-family:var(--font-mono)">Check to mark owned — expand to log crafted items</span>
+                        </div>
+                        <div class="sr-upgrade-add-row">
+                            <input class="hud-input" type="text" id="craftName" placeholder="Table name…" style="flex:2" />
+                            <input class="hud-input sm" type="text" id="craftCost" placeholder="Gold cost" style="width:110px" />
+                            <button class="hud-btn-sm" onclick="HUD.addCraftingTable()">ADD TABLE</button>
+                        </div>
+                        <div class="sr-upgrade-list" id="craftingList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── SOCIAL ──────────────────────────────────── -->
+            <div class="sr-panel" id="srp-social">
+                <div class="panel-grid">
+                    <!-- Fan stats -->
+                    <div class="hud-card">
+                        <div class="card-header">📡 FAN METRICS</div>
+                        <div class="stat-grid">
+                            <div class="stat-row"><span class="stat-name">VIEWER COUNT</span><input class="hud-field num" type="number" data-field="viewers" placeholder="0" /></div>
+                            <div class="stat-row"><span class="stat-name">RATING SCORE</span><input class="hud-field num" type="number" data-field="rating" placeholder="0.0" step="0.1" /></div>
+                            <div class="stat-row"><span class="stat-name">TOTAL FANS</span><input class="hud-field num" type="number" data-field="totalFans" placeholder="0" /></div>
+                            <div class="stat-row"><span class="stat-name">FAME TIER</span><input class="hud-field" type="text" data-field="fameTier" placeholder="Unknown / Rising / Famous…" /></div>
+                            <div class="stat-row"><span class="stat-name">HATERS</span><input class="hud-field num" type="number" data-field="haters" placeholder="0" /></div>
+                        </div>
+                        <div class="card-header" style="margin-top:1rem">📡 SOCIAL NOTES</div>
+                        <textarea class="hud-textarea" data-field="socialNotes" placeholder="Notable fans, feuds, viral moments, deals made with fans…" rows="4"></textarea>
+                    </div>
+
+                    <!-- Fan board / interaction log -->
+                    <div class="hud-card span-2">
+                        <div class="card-header">📡 FAN BOARD — INTERACTION LOG</div>
+                        <div class="sr-upgrade-add-row">
+                            <input class="hud-input sm" type="text" id="fanName" placeholder="Fan / source…" style="width:160px" />
+                            <input class="hud-input" type="text" id="fanMsg" placeholder="Message, donation, event…" style="flex:1" />
+                            <select class="hud-input sm" id="fanType" style="width:120px">
+                                <option value="fan">💬 Message</option>
+                                <option value="donation">💰 Donation</option>
+                                <option value="threat">⚠ Threat</option>
+                                <option value="sponsor">⬡ Sponsor</option>
+                                <option value="hater">👁 Hater</option>
+                            </select>
+                            <button class="hud-btn-sm" onclick="HUD.addFanEntry()">POST</button>
+                        </div>
+                        <div class="fan-feed" id="fanFeed"></div>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
     </main>

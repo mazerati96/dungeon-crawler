@@ -264,7 +264,13 @@ const Admin = (() => {
 
         const data = await apiGet({ action: 'sheet_json', cid });
         label.textContent = `Character id=${cid}`;
-        editor.value = JSON.stringify(data.data ?? {}, null, 2);
+        // Use raw string from server — avoids PHP [] bug on empty objects
+        try {
+            const parsed = JSON.parse(data.raw ?? '{}');
+            editor.value = JSON.stringify(parsed, null, 2);
+        } catch {
+            editor.value = data.raw ?? '{}';
+        }
     }
 
     function inspectorFormatJson() {

@@ -1002,12 +1002,109 @@ body {
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
+
+    /* Topbar — stack logo above user/logout on small screens */
+    .admin-topbar {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 0.6rem 1rem;
+        gap: 0.5rem;
+        row-gap: 0.4rem;
+    }
+
+    .topbar-ai-logo {
+        flex: 1 1 auto;
+    }
+
+    .topbar-spacer {
+        display: none;
+    }
+
+    .topbar-admin-name {
+        font-size: 0.62rem;
+    }
+
+    /* Shrink main content top margin to match new topbar height */
+    .admin-main {
+        margin-top: 88px; /* topbar wraps to ~2 rows on mobile */
+        padding: 0.75rem;
+    }
+
+    /* Tab nav — hide scrollbar, allow horizontal scroll */
+    .admin-tabnav {
+        top: 88px;
+        padding-left: 0;
+    }
+
+    .tab-btn {
+        padding: 0 0.75rem;
+        font-size: 0.55rem;
+        letter-spacing: 0.1em;
+    }
+
+    /* Tables — horizontal scroll wrapper already on most,
+       but ensure no overflow bleeds out */
+    .user-table, .audit-table {
+        min-width: 580px;
+    }
+
+    /* Stats tiles — single column on phone */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
     .three-col {
+        grid-template-columns: 1fr;
+    }
+
+    /* Inspector sidebar buttons stack */
+    .inspector-sidebar {
+        gap: 0.4rem;
+    }
+
+    /* JSON editor — shorter on mobile so it doesn't dwarf the screen */
+    .json-editor {
+        min-height: 260px;
+    }
+
+    /* Action buttons in table rows — wrap tightly */
+    .action-btns {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    /* Modal — full width on mobile */
+    .modal-box {
+        padding: 1.25rem 1.1rem;
+        clip-path: none;
+    }
+
+    /* Audit toolbar wraps */
+    .audit-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .audit-count {
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 400px) {
+    .stats-grid {
         grid-template-columns: 1fr;
     }
 
     .ai-logo-badge {
         display: none;
+    }
+
+    .ai-logo-text {
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+    }
+
+    .stat-tile-value {
+        font-size: 1.5rem;
     }
 }

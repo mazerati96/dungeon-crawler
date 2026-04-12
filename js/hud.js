@@ -14,33 +14,34 @@ const HUD = (() => {
 
     // ── State ────────────────────────────────────────────────
     let activeCharId = null;
-    let sheetData = {};
-    let saveTimer = null;
-    let isDirty = false;
+    let sheetData    = {};
+    let saveTimer    = null;
+    let isDirty      = false;
 
     // Dynamic arrays stored in sheetData
     const ARRAY_KEYS = ['inventory', 'activeSkills', 'passiveSkills', 'party', 'pets',
-        'activeQuests', 'completedQuests', 'spells', 'achievements', 'areas', 'statusTags'];
+                        'activeQuests', 'completedQuests', 'spells', 'achievements', 'areas', 'statusTags',
+                        'srBedroom', 'srTraining', 'srCrafting', 'fanFeed'];
     ARRAY_KEYS.forEach(k => { /* ensure they exist after load */ });
 
     // ── DOM refs ─────────────────────────────────────────────
-    const charSelect = document.getElementById('charSelect');
-    const newCharBtn = document.getElementById('newCharBtn');
-    const delCharBtn = document.getElementById('delCharBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const saveStatus = document.getElementById('saveStatus');
-    const newCharModal = document.getElementById('newCharModal');
-    const delCharModal = document.getElementById('delCharModal');
-    const newCharInput = document.getElementById('newCharName');
-    const newCharMsg = document.getElementById('newCharMsg');
-    const delConfirm = document.getElementById('delCharConfirm');
-    const delMsg = document.getElementById('delCharMsg');
+    const charSelect    = document.getElementById('charSelect');
+    const newCharBtn    = document.getElementById('newCharBtn');
+    const delCharBtn    = document.getElementById('delCharBtn');
+    const saveBtn       = document.getElementById('saveBtn');
+    const saveStatus    = document.getElementById('saveStatus');
+    const newCharModal  = document.getElementById('newCharModal');
+    const delCharModal  = document.getElementById('delCharModal');
+    const newCharInput  = document.getElementById('newCharName');
+    const newCharMsg    = document.getElementById('newCharMsg');
+    const delConfirm    = document.getElementById('delCharConfirm');
+    const delMsg        = document.getElementById('delCharMsg');
     const delConfirmBtn = document.getElementById('delCharConfirmBtn');
 
     // ── API helper ───────────────────────────────────────────
     async function api(params) {
         const body = new URLSearchParams(params);
-        const res = await fetch('api/character.php', { method: 'POST', body });
+        const res  = await fetch('api/character.php', { method: 'POST', body });
         return res.json();
     }
 
@@ -57,8 +58,8 @@ const HUD = (() => {
         if (!activeCharId) return;
         setStatus('saving');
         const data = await api({
-            action: 'save',
-            id: activeCharId,
+            action:     'save',
+            id:         activeCharId,
             sheet_json: JSON.stringify(sheetData),
         });
         setStatus(data.success ? 'saved' : 'error');
@@ -118,6 +119,17 @@ const HUD = (() => {
                 document.getElementById('tab-' + tabId)?.classList.add('active');
             });
         });
+
+        // Safe Room sub-tabs
+        document.querySelectorAll('.sr-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const srtab = btn.dataset.srtab;
+                document.querySelectorAll('.sr-tab').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.sr-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('srp-' + srtab)?.classList.add('active');
+            });
+        });
     }
 
     // ── Load character list ──────────────────────────────────
@@ -127,9 +139,9 @@ const HUD = (() => {
 
         charSelect.innerHTML = '<option value="">— SELECT CRAWLER —</option>';
         data.characters.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.text = c.name;
+            const opt  = document.createElement('option');
+            opt.value  = c.id;
+            opt.text   = c.name;
             charSelect.appendChild(opt);
         });
 
@@ -151,6 +163,7 @@ const HUD = (() => {
 
         sheetData = res.data || {};
         ARRAY_KEYS.forEach(k => { if (!Array.isArray(sheetData[k])) sheetData[k] = []; });
+        seedSrDefaults();
 
         populateFields();
         renderAllDynamic();
@@ -168,8 +181,9 @@ const HUD = (() => {
     }
 
     function clearAllDynamic() {
-        ['invGrid', 'activeSkillsList', 'passiveSkillsList', 'partyList', 'petList',
-            'activeQuestList', 'completedQuestList', 'spellList', 'achGrid', 'areaList', 'statusTags']
+        ['invGrid','activeSkillsList','passiveSkillsList','partyList','petList',
+         'activeQuestList','completedQuestList','spellList','achGrid','areaList','statusTags',
+         'bedroomList','trainingList','craftingList','fanFeed']
             .forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
     }
 
@@ -185,21 +199,25 @@ const HUD = (() => {
         renderAchievements();
         renderAreas();
         renderStatusTags();
+        renderSrUpgrades('bedroom');
+        renderSrUpgrades('training');
+        renderCraftingTables();
+        renderFanFeed();
     }
 
     // ── Inventory ────────────────────────────────────────────
     function addItem() {
-        const name = document.getElementById('invItemName').value.trim();
-        const qty = parseInt(document.getElementById('invItemQty').value) || 1;
-        const rarity = document.getElementById('invItemRarity').value;
-        const desc = document.getElementById('invItemDesc').value.trim();
+        const name    = document.getElementById('invItemName').value.trim();
+        const qty     = parseInt(document.getElementById('invItemQty').value) || 1;
+        const rarity  = document.getElementById('invItemRarity').value;
+        const desc    = document.getElementById('invItemDesc').value.trim();
         if (!name) return;
 
         sheetData.inventory = sheetData.inventory || [];
         sheetData.inventory.push({ name, qty, rarity, desc });
         document.getElementById('invItemName').value = '';
         document.getElementById('invItemDesc').value = '';
-        document.getElementById('invItemQty').value = '1';
+        document.getElementById('invItemQty').value  = '1';
         markDirty();
         renderInventory();
     }
@@ -227,9 +245,9 @@ const HUD = (() => {
         const nameId = type === 'active' ? 'activeSkillName' : 'passiveSkillName';
         const descId = type === 'active' ? 'activeSkillDesc' : 'passiveSkillDesc';
         const costId = type === 'active' ? 'activeSkillCost' : null;
-        const name = document.getElementById(nameId).value.trim();
-        const desc = document.getElementById(descId).value.trim();
-        const cost = costId ? document.getElementById(costId)?.value.trim() : '';
+        const name   = document.getElementById(nameId).value.trim();
+        const desc   = document.getElementById(descId).value.trim();
+        const cost   = costId ? document.getElementById(costId)?.value.trim() : '';
         if (!name) return;
 
         const key = type === 'active' ? 'activeSkills' : 'passiveSkills';
@@ -243,9 +261,9 @@ const HUD = (() => {
     }
 
     function renderSkills(type) {
-        const key = type === 'active' ? 'activeSkills' : 'passiveSkills';
+        const key    = type === 'active' ? 'activeSkills' : 'passiveSkills';
         const listId = type === 'active' ? 'activeSkillsList' : 'passiveSkillsList';
-        const list = document.getElementById(listId);
+        const list   = document.getElementById(listId);
         list.innerHTML = '';
         (sheetData[key] || []).forEach((s, i) => {
             const el = document.createElement('div');
@@ -263,16 +281,16 @@ const HUD = (() => {
 
     // ── Party ────────────────────────────────────────────────
     function addPartyMember() {
-        const name = document.getElementById('partyMemberName').value.trim();
-        const cls = document.getElementById('partyMemberClass').value.trim();
-        const hp = document.getElementById('partyMemberHp').value;
-        const level = document.getElementById('partyMemberLevel').value;
+        const name   = document.getElementById('partyMemberName').value.trim();
+        const cls    = document.getElementById('partyMemberClass').value.trim();
+        const hp     = document.getElementById('partyMemberHp').value;
+        const level  = document.getElementById('partyMemberLevel').value;
         const status = document.getElementById('partyMemberStatus').value.trim();
         if (!name) return;
 
         sheetData.party = sheetData.party || [];
         sheetData.party.push({ name, cls, hp, level, status });
-        ['partyMemberName', 'partyMemberClass', 'partyMemberHp', 'partyMemberLevel', 'partyMemberStatus']
+        ['partyMemberName','partyMemberClass','partyMemberHp','partyMemberLevel','partyMemberStatus']
             .forEach(id => document.getElementById(id).value = '');
         markDirty();
         renderParty();
@@ -323,8 +341,8 @@ const HUD = (() => {
 
     // ── Quests ───────────────────────────────────────────────
     function addQuest(status) {
-        const name = document.getElementById('questName').value.trim();
-        const desc = document.getElementById('questDesc').value.trim();
+        const name     = document.getElementById('questName').value.trim();
+        const desc     = document.getElementById('questDesc').value.trim();
         const priority = document.getElementById('questPriority').value;
         if (!name) return;
 
@@ -349,9 +367,9 @@ const HUD = (() => {
     }
 
     function renderQuests(status) {
-        const key = status === 'active' ? 'activeQuests' : 'completedQuests';
+        const key    = status === 'active' ? 'activeQuests' : 'completedQuests';
         const listId = status === 'active' ? 'activeQuestList' : 'completedQuestList';
-        const list = document.getElementById(listId);
+        const list   = document.getElementById(listId);
         list.innerHTML = '';
 
         (sheetData[key] || []).forEach((q, i) => {
@@ -374,9 +392,9 @@ const HUD = (() => {
 
     // ── Spells ───────────────────────────────────────────────
     function addSpell() {
-        const name = document.getElementById('spellName').value.trim();
-        const desc = document.getElementById('spellDesc').value.trim();
-        const cost = document.getElementById('spellCost').value.trim();
+        const name   = document.getElementById('spellName').value.trim();
+        const desc   = document.getElementById('spellDesc').value.trim();
+        const cost   = document.getElementById('spellCost').value.trim();
         const school = document.getElementById('spellSchool').value;
         if (!name) return;
         sheetData.spells = sheetData.spells || [];
@@ -407,8 +425,8 @@ const HUD = (() => {
 
     // ── Achievements ─────────────────────────────────────────
     function addAchievement() {
-        const name = document.getElementById('achName').value.trim();
-        const desc = document.getElementById('achDesc').value.trim();
+        const name   = document.getElementById('achName').value.trim();
+        const desc   = document.getElementById('achDesc').value.trim();
         const rarity = document.getElementById('achRarity').value;
         if (!name) return;
         sheetData.achievements = sheetData.achievements || [];
@@ -436,12 +454,12 @@ const HUD = (() => {
 
     // ── Areas ────────────────────────────────────────────────
     function addArea() {
-        const name = document.getElementById('areaName').value.trim();
+        const name   = document.getElementById('areaName').value.trim();
         const status = document.getElementById('areaStatus').value.trim();
         if (!name) return;
         sheetData.areas = sheetData.areas || [];
         sheetData.areas.push({ name, status });
-        document.getElementById('areaName').value = '';
+        document.getElementById('areaName').value   = '';
         document.getElementById('areaStatus').value = '';
         markDirty();
         renderAreas();
@@ -486,7 +504,7 @@ const HUD = (() => {
     // ── New Character Modal ───────────────────────────────────
     function openNewCharModal() {
         newCharMsg.textContent = '';
-        newCharInput.value = '';
+        newCharInput.value     = '';
         newCharModal.classList.remove('hidden');
         setTimeout(() => newCharInput.focus(), 50);
     }
@@ -510,8 +528,8 @@ const HUD = (() => {
     // ── Delete Character Modal ────────────────────────────────
     function openDelCharModal() {
         if (!activeCharId) return;
-        delMsg.textContent = '';
-        delConfirm.value = '';
+        delMsg.textContent     = '';
+        delConfirm.value       = '';
         delConfirmBtn.disabled = true;
         delCharModal.classList.remove('hidden');
         setTimeout(() => delConfirm.focus(), 50);
@@ -532,10 +550,242 @@ const HUD = (() => {
 
         closeDelCharModal();
         activeCharId = null;
-        sheetData = {};
+        sheetData    = {};
         clearAllDynamic();
         populateFields();
         await loadCharList();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SAFE ROOM — Bedroom & Training upgrades
+    // ═══════════════════════════════════════════════════════
+
+    // Seed default upgrades if the array is empty on first load
+    const SR_BEDROOM_DEFAULTS = [
+        { owned: false, name: 'Basic Cot',          bonus: 'No bonus',                cost: '' },
+        { owned: false, name: 'Standard Bed',       bonus: '+5 HP restored each rest', cost: '200' },
+        { owned: false, name: 'Upgraded Mattress',  bonus: '+10 HP restored each rest', cost: '500' },
+        { owned: false, name: 'Luxury Bed Suite',   bonus: '+20 HP + full Morale reset each rest', cost: '2000' },
+        { owned: false, name: 'Ambient Lighting',   bonus: '+5 Morale on rest',        cost: '300' },
+        { owned: false, name: 'Decor Package',      bonus: '+10 Morale on rest',       cost: '800' },
+        { owned: false, name: 'Soundproofing',      bonus: 'Immunity to ambush during rest', cost: '1200' },
+        { owned: false, name: 'Personal Armory',    bonus: 'Store 10 extra weapon slots', cost: '1500' },
+    ];
+
+    const SR_TRAINING_DEFAULTS = [
+        { owned: false, name: 'Combat Dummy',           bonus: '+1 Strength per session', cost: '500' },
+        { owned: false, name: 'Agility Course',         bonus: '+1 Agility per session',  cost: '500' },
+        { owned: false, name: 'Meditation Chamber',     bonus: '+1 Intelligence / Mana cap', cost: '700' },
+        { owned: false, name: 'Resistance Training Rig',bonus: '+1 Constitution per session', cost: '600' },
+        { owned: false, name: 'Shooting Range',         bonus: '+1 ranged accuracy',      cost: '800' },
+        { owned: false, name: 'Magic Practice Arena',   bonus: '+5 Spell Power per session', cost: '1000' },
+        { owned: false, name: 'Sparring Ring',          bonus: '+2 Initiative',           cost: '900' },
+        { owned: false, name: 'Endurance Track',        bonus: '+10 Momentum cap',        cost: '750' },
+    ];
+
+    const SR_CRAFTING_DEFAULTS = [
+        { owned: false, name: "Blacksmith's Forge",        cost: '1000', log: [] },
+        { owned: false, name: "Alchemist's Lab",           cost: '1200', log: [] },
+        { owned: false, name: "Enchanting Table",          cost: '1500', log: [] },
+        { owned: false, name: "Demolition Workshop",       cost: '800',  log: [] },
+        { owned: false, name: "Leatherworking Station",    cost: '600',  log: [] },
+        { owned: false, name: "Jeweler's Bench",           cost: '900',  log: [] },
+        { owned: false, name: "Rune Carving Table",        cost: '1300', log: [] },
+        { owned: false, name: "Tinker's Workshop",         cost: '700',  log: [] },
+        { owned: false, name: "Toxicology Station",        cost: '1100', log: [] },
+        { owned: false, name: "Cooking Station",           cost: '400',  log: [] },
+        { owned: false, name: "Scroll Scriptorium",        cost: '1000', log: [] },
+        { owned: false, name: "Explosive Lab",             cost: '1400', log: [] },
+    ];
+
+    function seedSrDefaults() {
+        if (!sheetData.srBedroom?.length)  sheetData.srBedroom  = SR_BEDROOM_DEFAULTS.map(x => ({...x}));
+        if (!sheetData.srTraining?.length) sheetData.srTraining = SR_TRAINING_DEFAULTS.map(x => ({...x}));
+        if (!sheetData.srCrafting?.length) sheetData.srCrafting = SR_CRAFTING_DEFAULTS.map(x => ({...x, log: []}));
+    }
+
+    // Add custom upgrade (bedroom or training)
+    function addSrUpgrade(type) {
+        const nameId  = type === 'bedroom' ? 'bedName'  : 'trainName';
+        const bonusId = type === 'bedroom' ? 'bedBonus' : 'trainBonus';
+        const costId  = type === 'bedroom' ? 'bedCost'  : 'trainCost';
+        const key     = type === 'bedroom' ? 'srBedroom' : 'srTraining';
+
+        const name  = document.getElementById(nameId)?.value.trim();
+        const bonus = document.getElementById(bonusId)?.value.trim();
+        const cost  = document.getElementById(costId)?.value.trim();
+        if (!name) return;
+
+        sheetData[key].push({ owned: false, name, bonus, cost });
+        document.getElementById(nameId).value  = '';
+        document.getElementById(bonusId).value = '';
+        document.getElementById(costId).value  = '';
+        markDirty();
+        renderSrUpgrades(type);
+    }
+
+    function toggleSrOwned(key, idx) {
+        sheetData[key][idx].owned = !sheetData[key][idx].owned;
+        markDirty();
+        renderSrUpgrades(key === 'srBedroom' ? 'bedroom' : 'training');
+    }
+
+    function renderSrUpgrades(type) {
+        const key    = type === 'bedroom' ? 'srBedroom' : 'srTraining';
+        const listEl = document.getElementById(type === 'bedroom' ? 'bedroomList' : 'trainingList');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+
+        (sheetData[key] || []).forEach((item, i) => {
+            const el = document.createElement('div');
+            el.className = 'sr-upgrade-row' + (item.owned ? ' owned' : '');
+            el.innerHTML = `
+                <label class="sr-owned-check" title="Mark as owned">
+                    <input type="checkbox" ${item.owned ? 'checked' : ''}
+                           onchange="HUD.toggleSrOwned('${key}', ${i})" />
+                    <span class="sr-check-box"></span>
+                </label>
+                <div class="sr-upgrade-info">
+                    <span class="sr-upgrade-name">${esc(item.name)}</span>
+                    ${item.bonus ? `<span class="sr-upgrade-bonus">▸ ${esc(item.bonus)}</span>` : ''}
+                </div>
+                <span class="sr-upgrade-cost">${item.cost ? `⬡ ${esc(item.cost)}g` : ''}</span>
+                <button class="remove-btn" onclick="HUD.removeFromArray('${key}', ${i})">✕</button>`;
+            listEl.appendChild(el);
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SAFE ROOM — Crafting tables
+    // ═══════════════════════════════════════════════════════
+
+    function addCraftingTable() {
+        const name = document.getElementById('craftName')?.value.trim();
+        const cost = document.getElementById('craftCost')?.value.trim();
+        if (!name) return;
+        sheetData.srCrafting.push({ owned: false, name, cost, log: [] });
+        document.getElementById('craftName').value = '';
+        document.getElementById('craftCost').value = '';
+        markDirty();
+        renderCraftingTables();
+    }
+
+    function toggleCraftOwned(idx) {
+        sheetData.srCrafting[idx].owned = !sheetData.srCrafting[idx].owned;
+        markDirty();
+        renderCraftingTables();
+    }
+
+    function addCraftLogEntry(idx) {
+        const input = document.getElementById(`craftLogInput-${idx}`);
+        const val   = input?.value.trim();
+        if (!val) return;
+        sheetData.srCrafting[idx].log = sheetData.srCrafting[idx].log || [];
+        sheetData.srCrafting[idx].log.push({ item: val, date: new Date().toLocaleDateString() });
+        input.value = '';
+        markDirty();
+        renderCraftingTables();
+    }
+
+    function removeCraftLogEntry(tableIdx, logIdx) {
+        sheetData.srCrafting[tableIdx].log.splice(logIdx, 1);
+        markDirty();
+        renderCraftingTables();
+    }
+
+    function renderCraftingTables() {
+        const listEl = document.getElementById('craftingList');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+
+        (sheetData.srCrafting || []).forEach((table, i) => {
+            const el = document.createElement('div');
+            el.className = 'craft-table-block' + (table.owned ? ' owned' : '');
+
+            const logItems = (table.log || []).map((entry, li) => `
+                <div class="craft-log-entry">
+                    <span class="craft-log-item">${esc(entry.item)}</span>
+                    <span class="craft-log-date">${esc(entry.date)}</span>
+                    <button class="remove-btn" onclick="HUD.removeCraftLogEntry(${i}, ${li})">✕</button>
+                </div>`).join('');
+
+            el.innerHTML = `
+                <div class="craft-table-header">
+                    <label class="sr-owned-check" title="Mark as owned">
+                        <input type="checkbox" ${table.owned ? 'checked' : ''}
+                               onchange="HUD.toggleCraftOwned(${i})" />
+                        <span class="sr-check-box"></span>
+                    </label>
+                    <span class="craft-table-name">${esc(table.name)}</span>
+                    <span class="sr-upgrade-cost">${table.cost ? `⬡ ${esc(table.cost)}g` : ''}</span>
+                    <button class="craft-expand-btn" onclick="this.closest('.craft-table-block').classList.toggle('expanded')">
+                        CRAFTED ▾
+                    </button>
+                    <button class="remove-btn" onclick="HUD.removeFromArray('srCrafting', ${i})">✕</button>
+                </div>
+                <div class="craft-log-wrap">
+                    <div class="craft-log-add">
+                        <input class="hud-input sm" type="text" id="craftLogInput-${i}" placeholder="Item crafted…" style="flex:1" />
+                        <button class="hud-btn-sm" onclick="HUD.addCraftLogEntry(${i})">LOG</button>
+                    </div>
+                    <div class="craft-log-list">
+                        ${logItems || '<div class="craft-log-empty">Nothing crafted yet.</div>'}
+                    </div>
+                </div>`;
+            listEl.appendChild(el);
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SAFE ROOM — Fan Feed
+    // ═══════════════════════════════════════════════════════
+
+    const FAN_TYPE_ICONS = {
+        fan: '💬', donation: '💰', threat: '⚠', sponsor: '⬡', hater: '👁'
+    };
+
+    function addFanEntry() {
+        const name = document.getElementById('fanName')?.value.trim();
+        const msg  = document.getElementById('fanMsg')?.value.trim();
+        const type = document.getElementById('fanType')?.value || 'fan';
+        if (!msg) return;
+
+        sheetData.fanFeed = sheetData.fanFeed || [];
+        sheetData.fanFeed.unshift({
+            name: name || 'Anonymous',
+            msg,
+            type,
+            date: new Date().toLocaleString(),
+        });
+        document.getElementById('fanName').value = '';
+        document.getElementById('fanMsg').value  = '';
+        markDirty();
+        renderFanFeed();
+    }
+
+    function renderFanFeed() {
+        const feed = document.getElementById('fanFeed');
+        if (!feed) return;
+        feed.innerHTML = '';
+
+        if (!(sheetData.fanFeed || []).length) {
+            feed.innerHTML = '<div class="fan-empty">No fan interactions logged yet.</div>';
+            return;
+        }
+
+        sheetData.fanFeed.forEach((entry, i) => {
+            const el = document.createElement('div');
+            el.className = `fan-entry fan-type-${entry.type}`;
+            el.innerHTML = `
+                <span class="fan-icon">${FAN_TYPE_ICONS[entry.type] || '💬'}</span>
+                <div class="fan-body">
+                    <span class="fan-name">${esc(entry.name)}</span>
+                    <span class="fan-msg">${esc(entry.msg)}</span>
+                    <span class="fan-date">${esc(entry.date)}</span>
+                </div>
+                <button class="remove-btn" onclick="HUD.removeFromArray('fanFeed', ${i})">✕</button>`;
+            feed.appendChild(el);
+        });
     }
 
     // ── Utility ──────────────────────────────────────────────
@@ -555,9 +805,9 @@ const HUD = (() => {
 
         // Character switcher
         charSelect.addEventListener('change', () => loadCharacter(charSelect.value));
-        newCharBtn.addEventListener('click', openNewCharModal);
-        delCharBtn.addEventListener('click', openDelCharModal);
-        saveBtn.addEventListener('click', save);
+        newCharBtn.addEventListener('click',  openNewCharModal);
+        delCharBtn.addEventListener('click',  openDelCharModal);
+        saveBtn.addEventListener('click',     save);
 
         // Delete confirm enable
         delConfirm.addEventListener('input', () => {
@@ -586,6 +836,9 @@ const HUD = (() => {
         addItem, addSkill, addPartyMember, addPet, addQuest, completeQuest,
         addSpell, addAchievement, addArea, addTag,
         removeFromArray,
+        addSrUpgrade, toggleSrOwned,
+        addCraftingTable, toggleCraftOwned, addCraftLogEntry, removeCraftLogEntry,
+        addFanEntry,
         openNewCharModal, closeNewCharModal, createCharacter,
         openDelCharModal, closeDelCharModal, confirmDelete,
     };

@@ -1296,3 +1296,332 @@ body {
         grid-template-columns: repeat(5, 1fr);
     }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   VITALS — Momentum & Morale colors
+═══════════════════════════════════════════════════════════ */
+.vital-name.momentum {
+    color: #00ffcc;
+    text-shadow: 0 0 6px #00ffcc;
+}
+
+.vital-name.morale {
+    color: #ff66aa;
+    text-shadow: 0 0 6px #ff66aa;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAFE ROOM — Sub-tabs
+═══════════════════════════════════════════════════════════ */
+.sr-subnav {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--clr-border-dim);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+    .sr-subnav::-webkit-scrollbar {
+        display: none;
+    }
+
+.sr-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--clr-text-dim);
+    font-family: var(--font-hud);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    padding: 0.5rem 1.1rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+}
+
+    .sr-tab:hover {
+        color: var(--clr-text);
+    }
+
+    .sr-tab.active {
+        color: var(--clr-glow);
+        text-shadow: 0 0 8px var(--clr-glow);
+        border-bottom-color: var(--clr-glow);
+    }
+
+.sr-panel {
+    display: none;
+}
+
+    .sr-panel.active {
+        display: block;
+        animation: fadeIn 0.2s ease;
+    }
+
+/* ═══════════════════════════════════════════════════════════
+   SAFE ROOM — Upgrade rows (bedroom / training)
+═══════════════════════════════════════════════════════════ */
+.sr-upgrade-add-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.85rem;
+    align-items: center;
+}
+
+.sr-upgrade-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sr-upgrade-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.65rem;
+    background: rgba(0, 20, 40, 0.6);
+    border: 1px solid var(--clr-border-dim);
+    transition: border-color 0.2s, background 0.2s;
+}
+
+    .sr-upgrade-row.owned {
+        border-color: rgba(0, 240, 255, 0.3);
+        background: rgba(0, 30, 55, 0.8);
+    }
+
+.sr-owned-check {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+    .sr-owned-check input[type="checkbox"] {
+        display: none;
+    }
+
+.sr-check-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--clr-border-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+    flex: 0 0 16px;
+}
+
+.sr-owned-check input:checked + .sr-check-box {
+    background: var(--clr-glow);
+    border-color: var(--clr-glow);
+    box-shadow: 0 0 6px var(--clr-glow);
+}
+
+    .sr-owned-check input:checked + .sr-check-box::after {
+        content: '✓';
+        font-size: 0.65rem;
+        color: var(--clr-bg);
+        font-weight: bold;
+    }
+
+.sr-upgrade-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.sr-upgrade-name {
+    font-size: 0.82rem;
+    color: var(--clr-text);
+}
+
+.sr-upgrade-bonus {
+    font-size: 0.68rem;
+    color: var(--clr-glow);
+    opacity: 0.75;
+}
+
+.sr-upgrade-cost {
+    font-family: var(--font-hud);
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    color: #ffd700;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAFE ROOM — Crafting tables
+═══════════════════════════════════════════════════════════ */
+.craft-table-block {
+    background: rgba(0, 20, 40, 0.6);
+    border: 1px solid var(--clr-border-dim);
+    margin-bottom: 0.5rem;
+    transition: border-color 0.2s;
+}
+
+    .craft-table-block.owned {
+        border-color: rgba(0, 240, 255, 0.3);
+    }
+
+.craft-table-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.7rem;
+}
+
+.craft-table-name {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--clr-text);
+}
+
+.craft-expand-btn {
+    background: transparent;
+    border: 1px solid var(--clr-border-dim);
+    color: var(--clr-label);
+    font-family: var(--font-hud);
+    font-size: 0.5rem;
+    letter-spacing: 0.12em;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+    .craft-expand-btn:hover {
+        color: var(--clr-glow);
+        border-color: var(--clr-glow);
+    }
+
+.craft-log-wrap {
+    display: none;
+    padding: 0 0.7rem 0.65rem;
+}
+
+.craft-table-block.expanded .craft-log-wrap {
+    display: block;
+}
+
+.craft-log-add {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+}
+
+.craft-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.craft-log-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(0, 60, 90, 0.2);
+    font-size: 0.75rem;
+}
+
+.craft-log-item {
+    flex: 1;
+    color: var(--clr-text);
+}
+
+.craft-log-date {
+    color: var(--clr-text-dim);
+    font-size: 0.65rem;
+    white-space: nowrap;
+}
+
+.craft-log-empty {
+    color: var(--clr-text-dim);
+    font-size: 0.72rem;
+    font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAFE ROOM — Fan Feed
+═══════════════════════════════════════════════════════════ */
+.fan-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 0.75rem;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.fan-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    background: rgba(0, 20, 40, 0.7);
+    border: 1px solid var(--clr-border-dim);
+    border-left: 3px solid var(--clr-border-dim);
+}
+
+.fan-type-fan {
+    border-left-color: #00c8ff;
+}
+
+.fan-type-donation {
+    border-left-color: #ffd700;
+}
+
+.fan-type-threat {
+    border-left-color: #ff4444;
+}
+
+.fan-type-sponsor {
+    border-left-color: var(--clr-glow);
+}
+
+.fan-type-hater {
+    border-left-color: #aa44ff;
+}
+
+.fan-icon {
+    font-size: 1rem;
+    flex: 0 0 auto;
+    line-height: 1.3;
+}
+
+.fan-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.fan-name {
+    font-size: 0.7rem;
+    color: var(--clr-glow);
+    font-family: var(--font-hud);
+    letter-spacing: 0.1em;
+}
+
+.fan-msg {
+    font-size: 0.8rem;
+    color: var(--clr-text);
+}
+
+.fan-date {
+    font-size: 0.62rem;
+    color: var(--clr-text-dim);
+}
+
+.fan-empty {
+    color: var(--clr-text-dim);
+    font-size: 0.75rem;
+    font-style: italic;
+    padding: 0.5rem 0;
+}

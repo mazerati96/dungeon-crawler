@@ -101,8 +101,9 @@ if ($action === 'sheet_json') {
     $stmt = $db->prepare('SELECT sheet_json FROM character_data WHERE character_id = ?');
     $stmt->execute([$cid]);
     $row  = $stmt->fetch();
-    $data = $row ? json_decode($row['sheet_json'], true) : null;
-    echo json_encode(['success' => true, 'data' => $data]);
+    // Return the raw JSON string — avoids PHP decode/re-encode turning {} into []
+    $raw  = ($row && $row['sheet_json']) ? $row['sheet_json'] : '{}';
+    echo json_encode(['success' => true, 'raw' => $raw]);
     exit;
 }
 
