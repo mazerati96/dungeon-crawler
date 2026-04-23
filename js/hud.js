@@ -73,9 +73,13 @@ const HUD = (() => {
     }
 
     // ── Read all data-field inputs into sheetData ────────────
+    // First occurrence wins — guards against any accidental duplicate data-field attrs
     function collectFields() {
+        const seen = new Set();
         document.querySelectorAll('[data-field]').forEach(el => {
             const k = el.dataset.field;
+            if (seen.has(k)) return;
+            seen.add(k);
             if (el.type === 'checkbox') {
                 sheetData[k] = el.checked;
             } else {

@@ -232,27 +232,8 @@ $username = htmlspecialchars($_SESSION['username']);
 
                 <!-- Ratings & Viewer count -->
                 <div class="hud-card">
-                    <div class="card-header">◈ RATINGS & FAME</div>
+                    <div class="card-header">◈ FAME & RESOURCES</div>
                     <div class="stat-grid">
-                        <div class="stat-row"><span class="stat-name">VIEWER COUNT</span><input class="hud-field num" type="number" data-field="viewers" placeholder="0" /></div>
-                        <div class="stat-row"><span class="stat-name">RATING SCORE</span><input class="hud-field num" type="number" data-field="rating" placeholder="0" step="0.1" /></div>
-                        <div class="stat-row"><span class="stat-name">TOTAL FANS</span><input class="hud-field num" type="number" data-field="totalFans" placeholder="0" /></div>
-                        <div class="stat-row"><span class="stat-name">HATERS</span><input class="hud-field num" type="number" data-field="haters" placeholder="0" /></div>
-                        <div class="stat-row">
-                            <span class="stat-name">FAME TIER</span>
-                            <select class="hud-field" data-field="fameTier" style="width:auto;font-size:.7rem">
-                                <option value="">— Select —</option>
-                                <option value="Hated Dogwater">💀 Hated Dogwater</option>
-                                <option value="Steamy Poo Boy">💩 Steamy Poo Boy</option>
-                                <option value="Trash Boat">🗑 Trash Boat</option>
-                                <option value="Cringey Actor">😬 Cringey Actor</option>
-                                <option value="Neutral">😐 Neutral</option>
-                                <option value="Quirky Youtuber">🎬 Quirky Youtuber</option>
-                                <option value="Small Time Actor">🌱 Small Time Actor</option>
-                                <option value="Rising Star">⭐ Rising Star</option>
-                                <option value="Celebrity">🌟 Celebrity</option>
-                            </select>
-                        </div>
                         <div class="stat-row"><span class="stat-name">PATRON DEITY</span><input class="hud-field" type="text" data-field="deity" placeholder="None" /></div>
                         <div class="stat-row"><span class="stat-name">GUILD / FACTION</span><input class="hud-field" type="text" data-field="faction" placeholder="None" /></div>
                         <div class="stat-row"><span class="stat-name">GOLD / COINS</span><input class="hud-field num" type="number" data-field="gold" placeholder="0" /></div>
@@ -262,6 +243,7 @@ $username = htmlspecialchars($_SESSION['username']);
                         <div class="stat-row"><span class="stat-name">CATCH PHRASE</span><input class="hud-field" type="text" data-field="catchPhrase" placeholder="e.g. Let's go gambling!" /></div>
                         <div class="stat-row"><span class="stat-name">SIGNATURE MOVE</span><input class="hud-field" type="text" data-field="signatureMove" placeholder="e.g. 360 backflip spear throw" /></div>
                     </div>
+                    <div class="fame-mirror-note">Fan stats (viewers, rating, fame tier) live in the <strong>SAFE ROOM → SOCIAL</strong> tab</div>
                 </div>
 
                 <!-- Notes -->
@@ -443,8 +425,6 @@ $username = htmlspecialchars($_SESSION['username']);
                 <div class="hud-card">
                     <div class="card-header">◈ MANA MANAGEMENT</div>
                     <div class="stat-grid">
-                        <div class="stat-row"><span class="stat-name">CURRENT MANA</span><input class="hud-field num" type="number" data-field="manaCurrent" /></div>
-                        <div class="stat-row"><span class="stat-name">MAX MANA</span><input class="hud-field num" type="number" data-field="manaMax" /></div>
                         <div class="stat-row"><span class="stat-name">MANA REGEN/TURN</span><input class="hud-field num" type="number" data-field="manaRegen" placeholder="0" /></div>
                         <div class="stat-row"><span class="stat-name">SPELL POWER</span><input class="hud-field num" type="number" data-field="spellPower" placeholder="0" /></div>
                         <div class="stat-row"><span class="stat-name">MAGIC RESIST</span><input class="hud-field num" type="number" data-field="magicResist" placeholder="0" /></div>
@@ -482,8 +462,6 @@ $username = htmlspecialchars($_SESSION['username']);
                 <div class="hud-card span-2">
                     <div class="card-header">⊕ DUNGEON MAP NOTES</div>
                     <div class="map-meta-grid">
-                        <div class="id-field"><label>CURRENT FLOOR</label><input class="hud-field" type="number" data-field="floor" /></div>
-                        <div class="id-field"><label>SAFE ROOM LOCATION</label><input class="hud-field" type="text" data-field="safeRoom" placeholder="Sector 4B" /></div>
                         <div class="id-field"><label>BOSS ENCOUNTERED</label><input class="hud-field" type="text" data-field="bossName" placeholder="—" /></div>
                         <div class="id-field"><label>BOSS STATUS</label><input class="hud-field" type="text" data-field="bossStatus" placeholder="Alive / Defeated" /></div>
                     </div>
@@ -526,10 +504,9 @@ $username = htmlspecialchars($_SESSION['username']);
                             <label class="upgrade-row"><input type="checkbox" data-field="upgradeScratchpad" /> Second Scratch Pad</label>
                         </div>
                         <div class="card-header" style="margin-top:1rem">⬡ SAFE ROOM LOCATION</div>
-                        <div class="identity-grid" style="grid-template-columns:1fr 1fr 1fr">
-                            <div class="id-field"><label>FLOOR / SECTOR</label><input class="hud-field" type="text" data-field="safeRoom" placeholder="Floor 4 — Sector B" /></div>
+                        <div class="identity-grid" style="grid-template-columns:1fr 1fr">
                             <div class="id-field"><label>ROOM TIER</label><input class="hud-field" type="text" data-field="safeRoomTier" placeholder="Standard / Upgraded…" /></div>
-                            <div class="id-field"><label>GOLD ON HAND</label><input class="hud-field" type="number" data-field="gold" placeholder="0" /></div>
+                            <div class="id-field"><label>TITHE / OFFERING DUE</label><input class="hud-field" type="text" data-field="safeRoomTithe" placeholder="e.g. 50g per floor or 1 finger" /></div>
                         </div>
                         <div class="card-header" style="margin-top:1rem">⬡ GENERAL NOTES</div>
                         <textarea class="hud-textarea" data-field="safeRoomNotes" placeholder="Safe room condition, special features, what's stocked…" rows="3"></textarea>
@@ -608,15 +585,28 @@ $username = htmlspecialchars($_SESSION['username']);
             <!-- ── SOCIAL ──────────────────────────────────── -->
             <div class="sr-panel" id="srp-social">
                 <div class="panel-grid">
-                    <!-- Fan stats -->
                     <div class="hud-card">
                         <div class="card-header">📡 FAN METRICS</div>
                         <div class="stat-grid">
                             <div class="stat-row"><span class="stat-name">VIEWER COUNT</span><input class="hud-field num" type="number" data-field="viewers" placeholder="0" /></div>
                             <div class="stat-row"><span class="stat-name">RATING SCORE</span><input class="hud-field num" type="number" data-field="rating" placeholder="0.0" step="0.1" /></div>
                             <div class="stat-row"><span class="stat-name">TOTAL FANS</span><input class="hud-field num" type="number" data-field="totalFans" placeholder="0" /></div>
-                            <div class="stat-row"><span class="stat-name">FAME TIER</span><input class="hud-field" type="text" data-field="fameTier" placeholder="Unknown / Rising / Famous…" /></div>
                             <div class="stat-row"><span class="stat-name">HATERS</span><input class="hud-field num" type="number" data-field="haters" placeholder="0" /></div>
+                            <div class="stat-row">
+                                <span class="stat-name">FAME TIER</span>
+                                <select class="hud-field" data-field="fameTier" style="width:auto;font-size:.7rem">
+                                    <option value="">— Select —</option>
+                                    <option value="Hated Dogwater">💀 Hated Dogwater</option>
+                                    <option value="Steamy Poo Boy">💩 Steamy Poo Boy</option>
+                                    <option value="Trash Boat">🗑 Trash Boat</option>
+                                    <option value="Cringey Actor">😬 Cringey Actor</option>
+                                    <option value="Neutral">😐 Neutral</option>
+                                    <option value="Quirky Youtuber">🎬 Quirky Youtuber</option>
+                                    <option value="Small Time Actor">🌱 Small Time Actor</option>
+                                    <option value="Rising Star">⭐ Rising Star</option>
+                                    <option value="Celebrity">🌟 Celebrity</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="card-header" style="margin-top:1rem">📡 SOCIAL NOTES</div>
                         <textarea class="hud-textarea" data-field="socialNotes" placeholder="Notable fans, feuds, viral moments, deals made with fans…" rows="4"></textarea>

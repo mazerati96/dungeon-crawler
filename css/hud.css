@@ -1723,3 +1723,17 @@ body {
         color: var(--clr-warn);
         text-shadow: 0 0 6px rgba(255,68,68,0.4);
     }
+
+/* Fame mirror note */
+.fame-mirror-note {
+    font-size: 0.68rem;
+    color: var(--clr-text-dim);
+    margin-top: 0.75rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--clr-border-dim);
+    background: rgba(0,20,40,0.4);
+}
+
+    .fame-mirror-note strong {
+        color: var(--clr-glow);
+    }
