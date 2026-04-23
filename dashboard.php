@@ -93,11 +93,24 @@ $username = htmlspecialchars($_SESSION['username']);
                         </div>
                         <div class="id-field">
                             <label>CLASS / TITLE</label>
-                            <input class="hud-field" type="text" data-field="classTitle" placeholder="Inquisitor" />
+                            <input class="hud-field" type="text" data-field="classTitle" placeholder="System AI assigns floor 3+" />
                         </div>
                         <div class="id-field">
-                            <label>RACE / SPECIES</label>
-                            <input class="hud-field" type="text" data-field="race" placeholder="Human" />
+                            <label>SPECIALIZATION</label>
+                            <input class="hud-field" type="text" data-field="classSpec" placeholder="Unlocks at level 6, 9, 12…" />
+                        </div>
+                        <div class="id-field">
+                            <label>STARTING RACE <span class="hint-label">(floors 1–2)</span></label>
+                            <select class="hud-field" data-field="startingRace">
+                                <option value="">— Choose —</option>
+                                <option value="Human">Human</option>
+                                <option value="Elf">Elf</option>
+                                <option value="Dwarf">Dwarf</option>
+                            </select>
+                        </div>
+                        <div class="id-field">
+                            <label>EVOLVED RACE <span class="hint-label">(floor 3+, system AI)</span></label>
+                            <input class="hud-field" type="text" data-field="evolvedRace" placeholder="Assigned at floor 3…" />
                         </div>
                         <div class="id-field">
                             <label>CURRENT FLOOR</label>
@@ -123,12 +136,14 @@ $username = htmlspecialchars($_SESSION['username']);
                             <input class="hud-field num" type="number" data-field="hpCurrent" placeholder="100" />
                             <span class="vital-sep">/</span>
                             <input class="hud-field num" type="number" data-field="hpMax" placeholder="100" />
+                            <span class="vital-hint">= CON</span>
                         </div>
                         <div class="vital-row">
                             <span class="vital-name mana">MANA</span>
                             <input class="hud-field num" type="number" data-field="manaCurrent" placeholder="50" />
                             <span class="vital-sep">/</span>
                             <input class="hud-field num" type="number" data-field="manaMax" placeholder="50" />
+                            <span class="vital-hint">= INT</span>
                         </div>
                         <div class="vital-row">
                             <span class="vital-name momentum">MOMENTUM</span>
@@ -221,9 +236,31 @@ $username = htmlspecialchars($_SESSION['username']);
                     <div class="stat-grid">
                         <div class="stat-row"><span class="stat-name">VIEWER COUNT</span><input class="hud-field num" type="number" data-field="viewers" placeholder="0" /></div>
                         <div class="stat-row"><span class="stat-name">RATING SCORE</span><input class="hud-field num" type="number" data-field="rating" placeholder="0" step="0.1" /></div>
+                        <div class="stat-row"><span class="stat-name">TOTAL FANS</span><input class="hud-field num" type="number" data-field="totalFans" placeholder="0" /></div>
+                        <div class="stat-row"><span class="stat-name">HATERS</span><input class="hud-field num" type="number" data-field="haters" placeholder="0" /></div>
+                        <div class="stat-row">
+                            <span class="stat-name">FAME TIER</span>
+                            <select class="hud-field" data-field="fameTier" style="width:auto;font-size:.7rem">
+                                <option value="">— Select —</option>
+                                <option value="Hated Dogwater">💀 Hated Dogwater</option>
+                                <option value="Steamy Poo Boy">💩 Steamy Poo Boy</option>
+                                <option value="Trash Boat">🗑 Trash Boat</option>
+                                <option value="Cringey Actor">😬 Cringey Actor</option>
+                                <option value="Neutral">😐 Neutral</option>
+                                <option value="Quirky Youtuber">🎬 Quirky Youtuber</option>
+                                <option value="Small Time Actor">🌱 Small Time Actor</option>
+                                <option value="Rising Star">⭐ Rising Star</option>
+                                <option value="Celebrity">🌟 Celebrity</option>
+                            </select>
+                        </div>
                         <div class="stat-row"><span class="stat-name">PATRON DEITY</span><input class="hud-field" type="text" data-field="deity" placeholder="None" /></div>
                         <div class="stat-row"><span class="stat-name">GUILD / FACTION</span><input class="hud-field" type="text" data-field="faction" placeholder="None" /></div>
                         <div class="stat-row"><span class="stat-name">GOLD / COINS</span><input class="hud-field num" type="number" data-field="gold" placeholder="0" /></div>
+                    </div>
+                    <div class="card-header" style="margin-top:1rem">◈ PERSONALITY</div>
+                    <div class="stat-grid">
+                        <div class="stat-row"><span class="stat-name">CATCH PHRASE</span><input class="hud-field" type="text" data-field="catchPhrase" placeholder="e.g. Let's go gambling!" /></div>
+                        <div class="stat-row"><span class="stat-name">SIGNATURE MOVE</span><input class="hud-field" type="text" data-field="signatureMove" placeholder="e.g. 360 backflip spear throw" /></div>
                     </div>
                 </div>
 
@@ -260,7 +297,7 @@ $username = htmlspecialchars($_SESSION['username']);
 
                 <!-- Loot Boxes -->
                 <div class="hud-card">
-                    <div class="card-header">⊞ LOOT BOXES</div>
+                    <div class="card-header">⊞ LOOT BOXES <span style="color:var(--clr-text-dim);font-size:.52rem;font-family:var(--font-mono);font-weight:normal">⚠ Open in safe areas only</span></div>
                     <div class="loot-tiers">
                         <div class="loot-tier bronze"><span>BRONZE</span><input class="hud-field num" type="number" data-field="lootBronze" placeholder="0" min="0" /></div>
                         <div class="loot-tier silver"><span>SILVER</span><input class="hud-field num" type="number" data-field="lootSilver" placeholder="0" min="0" /></div>
@@ -268,6 +305,11 @@ $username = htmlspecialchars($_SESSION['username']);
                         <div class="loot-tier platinum"><span>PLATINUM</span><input class="hud-field num" type="number" data-field="lootPlatinum" placeholder="0" min="0" /></div>
                         <div class="loot-tier legendary"><span>LEGENDARY</span><input class="hud-field num" type="number" data-field="lootLegendary" placeholder="0" min="0" /></div>
                         <div class="loot-tier celestial"><span>CELESTIAL</span><input class="hud-field num" type="number" data-field="lootCelestial" placeholder="0" min="0" /></div>
+                    </div>
+                    <div class="card-header" style="margin-top:1rem">⊞ SPECIAL BOXES</div>
+                    <div class="loot-tiers">
+                        <div class="loot-tier fan-box"><span>🎁 FAN BOXES</span><input class="hud-field num" type="number" data-field="lootFan" placeholder="0" min="0" /></div>
+                        <div class="loot-tier hater-box"><span>💀 HATER BOXES</span><input class="hud-field num" type="number" data-field="lootHater" placeholder="0" min="0" /></div>
                     </div>
                 </div>
             </div>
@@ -283,6 +325,7 @@ $username = htmlspecialchars($_SESSION['username']);
                         <input class="hud-input" type="text" id="activeSkillName" placeholder="Skill name…" />
                         <input class="hud-input" type="text" id="activeSkillDesc" placeholder="Description…" style="flex:2" />
                         <input class="hud-input sm" type="text" id="activeSkillCost" placeholder="Cost" style="width:100px" />
+                        <input class="hud-input sm" type="number" id="activeSkillLevel" placeholder="LVL" min="1" value="1" style="width:65px" title="Skill level — increases through use" />
                         <button class="hud-btn-sm" onclick="HUD.addSkill('active')">ADD</button>
                     </div>
                     <div class="skills-list" id="activeSkillsList"></div>
@@ -294,6 +337,7 @@ $username = htmlspecialchars($_SESSION['username']);
                     <div class="skill-add-row">
                         <input class="hud-input" type="text" id="passiveSkillName" placeholder="Skill name…" />
                         <input class="hud-input" type="text" id="passiveSkillDesc" placeholder="Description…" style="flex:2" />
+                        <input class="hud-input sm" type="number" id="passiveSkillLevel" placeholder="LVL" min="1" value="1" style="width:65px" title="Skill level — increases through use" />
                         <button class="hud-btn-sm" onclick="HUD.addSkill('passive')">ADD</button>
                     </div>
                     <div class="skills-list" id="passiveSkillsList"></div>
@@ -389,6 +433,7 @@ $username = htmlspecialchars($_SESSION['username']);
                             <option value="nature">Nature</option>
                             <option value="void">Void</option>
                         </select>
+                        <input class="hud-input sm" type="number" id="spellLevel" placeholder="LVL" min="1" value="1" style="width:65px" title="Spell level — increases through repeated casting" />
                         <button class="hud-btn-sm" onclick="HUD.addSpell()">ADD</button>
                     </div>
                     <div class="skills-list" id="spellList"></div>
@@ -490,11 +535,20 @@ $username = htmlspecialchars($_SESSION['username']);
                         <textarea class="hud-textarea" data-field="safeRoomNotes" placeholder="Safe room condition, special features, what's stocked…" rows="3"></textarea>
                     </div>
                     <div class="hud-card">
-                        <div class="card-header">⬡ SPONSOR</div>
+                        <div class="card-header">⬡ SPONSOR
+                            <span style="color:var(--clr-text-dim);font-size:.52rem;font-family:var(--font-mono);font-weight:normal">Sends loot boxes</span>
+                        </div>
                         <div class="id-field" style="margin-bottom:.6rem"><label>SPONSOR NAME</label><input class="hud-field" type="text" data-field="sponsorName" placeholder="Sponsor name…" style="width:100%" /></div>
                         <div class="id-field" style="margin-bottom:.6rem"><label>RELATIONSHIP STATUS</label><input class="hud-field" type="text" data-field="sponsorStatus" placeholder="Friendly / Neutral / Strained…" style="width:100%" /></div>
                         <div class="id-field" style="margin-bottom:.6rem"><label>CONTRACT VALUE</label><input class="hud-field" type="text" data-field="sponsorValue" placeholder="0 gold / barter…" style="width:100%" /></div>
-                        <textarea class="hud-textarea" data-field="sponsorNotes" placeholder="Contract terms, perks, obligations, sponsor personality…" rows="5"></textarea>
+                        <textarea class="hud-textarea" data-field="sponsorNotes" placeholder="Contract terms, perks, obligations, sponsor personality…" rows="3"></textarea>
+
+                        <div class="card-header" style="margin-top:1.1rem">⬡ PATRON
+                            <span style="color:var(--clr-text-dim);font-size:.52rem;font-family:var(--font-mono);font-weight:normal">Floor-consistent perks (weaker but reliable)</span>
+                        </div>
+                        <div class="id-field" style="margin-bottom:.6rem"><label>PATRON NAME</label><input class="hud-field" type="text" data-field="patronName" placeholder="e.g. Gobblegoo Spell Book Club" style="width:100%" /></div>
+                        <div class="id-field" style="margin-bottom:.6rem"><label>PERK PER FLOOR</label><input class="hud-field" type="text" data-field="patronPerk" placeholder="e.g. 1 free spell book each floor" style="width:100%" /></div>
+                        <textarea class="hud-textarea" data-field="patronNotes" placeholder="Patron conditions, obligations, history…" rows="2"></textarea>
                     </div>
                 </div>
             </div>

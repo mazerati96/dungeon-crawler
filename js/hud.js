@@ -254,17 +254,20 @@ const HUD = (() => {
         const nameId = type === 'active' ? 'activeSkillName' : 'passiveSkillName';
         const descId = type === 'active' ? 'activeSkillDesc' : 'passiveSkillDesc';
         const costId = type === 'active' ? 'activeSkillCost' : null;
+        const levelId = type === 'active' ? 'activeSkillLevel' : 'passiveSkillLevel';
         const name = document.getElementById(nameId).value.trim();
         const desc = document.getElementById(descId).value.trim();
         const cost = costId ? document.getElementById(costId)?.value.trim() : '';
+        const level = parseInt(document.getElementById(levelId)?.value) || 1;
         if (!name) return;
 
         const key = type === 'active' ? 'activeSkills' : 'passiveSkills';
         sheetData[key] = sheetData[key] || [];
-        sheetData[key].push({ name, desc, cost });
+        sheetData[key].push({ name, desc, cost, level });
         document.getElementById(nameId).value = '';
         document.getElementById(descId).value = '';
         if (costId) document.getElementById(costId).value = '';
+        if (levelId) document.getElementById(levelId).value = '1';
         markDirty();
         renderSkills(type);
     }
@@ -275,9 +278,15 @@ const HUD = (() => {
         const list = document.getElementById(listId);
         list.innerHTML = '';
         (sheetData[key] || []).forEach((s, i) => {
+            const lvl = s.level || 1;
             const el = document.createElement('div');
             el.className = 'skill-item';
             el.innerHTML = `
+                <div class="skill-level-block">
+                    <button class="skill-lvl-btn" onclick="HUD.bumpSkillLevel('${key}', ${i}, -1)" title="Level down">−</button>
+                    <span class="skill-lvl-badge" title="Skill level — increases through use">LV${lvl}</span>
+                    <button class="skill-lvl-btn" onclick="HUD.bumpSkillLevel('${key}', ${i}, 1)" title="Level up">＋</button>
+                </div>
                 <div class="skill-info">
                     <div class="skill-name">${esc(s.name)}</div>
                     ${s.desc ? `<div class="skill-desc">${esc(s.desc)}</div>` : ''}
@@ -286,6 +295,14 @@ const HUD = (() => {
                 <button class="remove-btn" onclick="HUD.removeFromArray('${key}', ${i})">✕</button>`;
             list.appendChild(el);
         });
+    }
+
+    function bumpSkillLevel(key, idx, delta) {
+        const skill = sheetData[key]?.[idx];
+        if (!skill) return;
+        skill.level = Math.max(1, (skill.level || 1) + delta);
+        markDirty();
+        renderSkills(key === 'activeSkills' ? 'active' : 'passive');
     }
 
     // ── Party ────────────────────────────────────────────────
@@ -405,12 +422,14 @@ const HUD = (() => {
         const desc = document.getElementById('spellDesc').value.trim();
         const cost = document.getElementById('spellCost').value.trim();
         const school = document.getElementById('spellSchool').value;
+        const level = parseInt(document.getElementById('spellLevel')?.value) || 1;
         if (!name) return;
         sheetData.spells = sheetData.spells || [];
-        sheetData.spells.push({ name, desc, cost, school });
+        sheetData.spells.push({ name, desc, cost, school, level });
         document.getElementById('spellName').value = '';
         document.getElementById('spellDesc').value = '';
         document.getElementById('spellCost').value = '';
+        if (document.getElementById('spellLevel')) document.getElementById('spellLevel').value = '1';
         markDirty();
         renderSpells();
     }
@@ -419,9 +438,15 @@ const HUD = (() => {
         const list = document.getElementById('spellList');
         list.innerHTML = '';
         (sheetData.spells || []).forEach((s, i) => {
+            const lvl = s.level || 1;
             const el = document.createElement('div');
             el.className = 'skill-item';
             el.innerHTML = `
+                <div class="skill-level-block">
+                    <button class="skill-lvl-btn" onclick="HUD.bumpSpellLevel(${i}, -1)" title="Level down">−</button>
+                    <span class="skill-lvl-badge spell-lvl" title="Spell level — increases through repeated casting">LV${lvl}</span>
+                    <button class="skill-lvl-btn" onclick="HUD.bumpSpellLevel(${i}, 1)" title="Level up">＋</button>
+                </div>
                 <div class="skill-info">
                     <div class="skill-name">${esc(s.name)} <small style="color:var(--clr-label);font-size:.65rem">[${s.school}]</small></div>
                     ${s.desc ? `<div class="skill-desc">${esc(s.desc)}</div>` : ''}
@@ -430,6 +455,14 @@ const HUD = (() => {
                 <button class="remove-btn" onclick="HUD.removeFromArray('spells', ${i})">✕</button>`;
             list.appendChild(el);
         });
+    }
+
+    function bumpSpellLevel(idx, delta) {
+        const spell = sheetData.spells?.[idx];
+        if (!spell) return;
+        spell.level = Math.max(1, (spell.level || 1) + delta);
+        markDirty();
+        renderSpells();
     }
 
     // ── Achievements ─────────────────────────────────────────
@@ -845,6 +878,7 @@ const HUD = (() => {
         addItem, addSkill, addPartyMember, addPet, addQuest, completeQuest,
         addSpell, addAchievement, addArea, addTag,
         removeFromArray,
+        bumpSkillLevel, bumpSpellLevel,
         addSrUpgrade, toggleSrOwned,
         addCraftingTable, toggleCraftOwned, addCraftLogEntry, removeCraftLogEntry,
         addFanEntry,

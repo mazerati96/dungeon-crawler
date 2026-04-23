@@ -1625,3 +1625,101 @@ body {
     font-style: italic;
     padding: 0.5rem 0;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   RULE-ALIGNED ADDITIONS
+═══════════════════════════════════════════════════════════ */
+
+/* Vital hint labels (= CON, = INT) */
+.vital-hint {
+    font-family: var(--font-hud);
+    font-size: 0.48rem;
+    letter-spacing: 0.12em;
+    color: var(--clr-text-dim);
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* Identity field hint label (floors 1-2, floor 3+) */
+.hint-label {
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    color: var(--clr-text-dim);
+    font-weight: normal;
+    letter-spacing: 0;
+}
+
+/* Skill / spell level block */
+.skill-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.skill-level-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    flex: 0 0 auto;
+}
+
+.skill-lvl-badge {
+    font-family: var(--font-hud);
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    color: var(--clr-glow);
+    text-shadow: 0 0 6px var(--clr-glow);
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    padding: 0.15rem 0.3rem;
+    white-space: nowrap;
+    min-width: 36px;
+    text-align: center;
+}
+
+    .skill-lvl-badge.spell-lvl {
+        color: var(--clr-mana);
+        text-shadow: 0 0 6px var(--clr-mana);
+        background: rgba(85, 102, 255, 0.1);
+        border-color: rgba(85, 102, 255, 0.3);
+    }
+
+.skill-lvl-btn {
+    background: transparent;
+    border: 1px solid var(--clr-border-dim);
+    color: var(--clr-text-dim);
+    font-size: 0.65rem;
+    width: 22px;
+    height: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, border-color 0.15s;
+    padding: 0;
+    line-height: 1;
+}
+
+    .skill-lvl-btn:hover {
+        color: var(--clr-glow);
+        border-color: var(--clr-glow);
+    }
+
+/* Fan/Hater special loot box tiers */
+.loot-tier.fan-box {
+    border-color: #00c8ff;
+}
+
+    .loot-tier.fan-box span {
+        color: #00c8ff;
+    }
+
+.loot-tier.hater-box {
+    border-color: var(--clr-warn);
+}
+
+    .loot-tier.hater-box span {
+        color: var(--clr-warn);
+        text-shadow: 0 0 6px rgba(255,68,68,0.4);
+    }
