@@ -62,7 +62,11 @@ if (!$cid || (!$isAdmin && !owns_character($db, $uid, $cid))) {
 
 // ── load ─────────────────────────────────────────────────────
 if ($action === 'load') {
-    $stmt = $db->prepare('SELECT sheet_json FROM character_data WHERE character_id = ?');
+    // LIMIT 1 guards against duplicate rows that may exist from the old
+    // broken INSERT-only save path (see save fix below).
+    $stmt = $db->prepare(
+        'SELECT sheet_json FROM character_data WHERE character_id = ? ORDER BY id DESC LIMIT 1'
+    );
     $stmt->execute([$cid]);
     $row  = $stmt->fetch();
     $data = $row ? json_decode($row['sheet_json'], true) : [];
@@ -77,11 +81,25 @@ if ($action === 'save') {
     if (json_last_error() !== JSON_ERROR_NONE) {
         echo json_encode(['success' => false, 'message' => 'Invalid JSON.']); exit;
     }
-    $db->prepare(
-        'INSERT INTO character_data (character_id, sheet_json)
-         VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE sheet_json = VALUES(sheet_json)'
-    )->execute([$cid, $raw]);
+
+    // BUG FIX: The previous ON DUPLICATE KEY UPDATE only fires when
+    // character_data.character_id has a UNIQUE or PRIMARY KEY constraint.
+    // Without that constraint every save silently did a plain INSERT,
+    // piling up duplicate rows.  The SELECT on load has no ORDER BY, so
+    // it returned whichever row MySQL picked first — usually the empty {}
+    // created at character creation — making every save appear to vanish
+    // after a page reload.
+    //
+    // Fix: try UPDATE first.  If it touches 0 rows the character_data row
+    // is missing entirely, so INSERT it.  This is correct regardless of
+    // whether the UNIQUE constraint exists on the table.
+    $upd = $db->prepare('UPDATE character_data SET sheet_json = ? WHERE character_id = ?');
+    $upd->execute([$raw, $cid]);
+    if ($upd->rowCount() === 0) {
+        $db->prepare('INSERT INTO character_data (character_id, sheet_json) VALUES (?, ?)')
+           ->execute([$cid, $raw]);
+    }
+
     audit_char($db, $uid, $uname, 'save_sheet', "Saved character id=$cid");
     echo json_encode(['success' => true]);
     exit;
@@ -102,7 +120,16 @@ if ($action === 'delete') {
     $row = $db->prepare('SELECT name FROM characters WHERE id = ?');
     $row->execute([$cid]);
     $charName = $row->fetchColumn() ?: 'unknown';
+
+    // BUG FIX: Always delete character_data rows first.
+    // The old code only deleted from `characters`, leaving orphan rows in
+    // character_data.  MySQL auto-increment IDs get reused after many
+    // create/delete cycles, so a brand-new character could silently inherit
+    // a deleted character's sheet data — the data-bleeding between crawlers.
+    // Delete in child-first order to avoid foreign key constraint errors.
+    $db->prepare('DELETE FROM character_data WHERE character_id = ?')->execute([$cid]);
     $db->prepare('DELETE FROM characters WHERE id = ?')->execute([$cid]);
+
     audit_char($db, $uid, $uname, 'delete_char', "Deleted character: $charName (id=$cid)");
     echo json_encode(['success' => true]);
     exit;
