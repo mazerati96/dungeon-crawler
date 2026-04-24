@@ -73,7 +73,7 @@ const HUD = (() => {
     }
 
     // ── Read all data-field inputs into sheetData ────────────
-    // First occurrence wins — guards against any accidental duplicate data-field attrs
+    // First occurrence wins — prevents any duplicate data-field from clobbering earlier values
     function collectFields() {
         const seen = new Set();
         document.querySelectorAll('[data-field]').forEach(el => {
@@ -90,6 +90,18 @@ const HUD = (() => {
 
     // ── Write sheetData back into inputs ─────────────────────
     function populateFields() {
+        // Clear every field first — prevents previous character's values
+        // lingering in the DOM when the new character doesn't have that key
+        document.querySelectorAll('[data-field]').forEach(el => {
+            if (el.type === 'checkbox') {
+                el.checked = false;
+            } else if (el.tagName === 'SELECT') {
+                el.value = '';
+            } else {
+                el.value = '';
+            }
+        });
+        // Now write from sheetData
         document.querySelectorAll('[data-field]').forEach(el => {
             const k = el.dataset.field;
             if (!(k in sheetData)) return;
@@ -166,6 +178,11 @@ const HUD = (() => {
 
     // ── Load a character ─────────────────────────────────────
     async function loadCharacter(id) {
+        // Cancel any pending autosave from the previous character
+        // before we overwrite sheetData and activeCharId
+        clearTimeout(saveTimer);
+        isDirty = false;
+
         activeCharId = id;
         delCharBtn.classList.toggle('hidden', !id);
 
