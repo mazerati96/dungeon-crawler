@@ -17,6 +17,7 @@ const HUD = (() => {
     let sheetData = {};
     let saveTimer = null;
     let isDirty = false;
+    let loadingId = 0;   // incremented each loadCharacter call; stale responses are ignored
 
     // Dynamic arrays stored in sheetData
     const ARRAY_KEYS = ['inventory', 'activeSkills', 'passiveSkills', 'party', 'pets',
@@ -178,25 +179,49 @@ const HUD = (() => {
 
     // ── Load a character ─────────────────────────────────────
     async function loadCharacter(id) {
-        // Cancel any pending autosave from the previous character
-        // before we overwrite sheetData and activeCharId
-        clearTimeout(saveTimer);
+        // Save any unsaved work on the current character before switching
+        if (isDirty && activeCharId) {
+            clearTimeout(saveTimer);
+            await save();
+        } else {
+            clearTimeout(saveTimer);
+        }
         isDirty = false;
+
+        // Race-condition guard: each call gets a unique ticket.
+        // If another loadCharacter starts while we await the API,
+        // our response is stale and must be discarded.
+        // This was the core bug: the initial auto-load response arrived
+        // AFTER a user-triggered switch and silently overwrote it.
+        const myLoadId = ++loadingId;
 
         activeCharId = id;
         delCharBtn.classList.toggle('hidden', !id);
 
         if (!id) { sheetData = {}; clearAllDynamic(); populateFields(); return; }
 
-        const res = await api({ action: 'load', id });
-        if (!res.success) return;
+        try {
+            const res = await api({ action: 'load', id });
 
-        sheetData = res.data || {};
-        ARRAY_KEYS.forEach(k => { if (!Array.isArray(sheetData[k])) sheetData[k] = []; });
-        seedSrDefaults();
+            if (myLoadId !== loadingId) return; // stale response — discard
 
-        populateFields();
-        renderAllDynamic();
+            if (!res.success) {
+                console.error('[HUD] loadCharacter: API returned failure for id', id, res);
+                setStatus('error');
+                return;
+            }
+
+            sheetData = res.data || {};
+            ARRAY_KEYS.forEach(k => { if (!Array.isArray(sheetData[k])) sheetData[k] = []; });
+            seedSrDefaults();
+
+            populateFields();
+            renderAllDynamic();
+        } catch (err) {
+            if (myLoadId !== loadingId) return;
+            console.error('[HUD] loadCharacter: unexpected error for id', id, err);
+            setStatus('error');
+        }
     }
 
     // ═══════════════════════════════════════════════════════
@@ -866,8 +891,10 @@ const HUD = (() => {
         initTabs();
         bindFields();
 
-        // Character switcher
-        charSelect.addEventListener('change', () => loadCharacter(charSelect.value));
+        // Character switcher — async so errors surface and aren't silently swallowed
+        charSelect.addEventListener('change', async () => {
+            await loadCharacter(charSelect.value);
+        });
         newCharBtn.addEventListener('click', openNewCharModal);
         delCharBtn.addEventListener('click', openDelCharModal);
         saveBtn.addEventListener('click', save);
