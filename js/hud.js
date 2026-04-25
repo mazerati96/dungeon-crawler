@@ -211,7 +211,19 @@ const HUD = (() => {
                 return;
             }
 
-            sheetData = res.data || {};
+            // Parse raw JSON string from server — avoids the PHP [] decode bug.
+            // Never use res.data directly: json_decode('{}', true) in PHP returns
+            // a PHP array which json_encode turns into '[]', making sheetData an
+            // Array in JS, causing JSON.stringify to silently drop all named properties.
+            let parsed;
+            try {
+                parsed = JSON.parse(res.raw || '{}');
+            } catch (e) {
+                parsed = {};
+            }
+            // Final safety net: if somehow an array arrived, reset to object
+            if (Array.isArray(parsed)) parsed = {};
+            sheetData = parsed;
             ARRAY_KEYS.forEach(k => { if (!Array.isArray(sheetData[k])) sheetData[k] = []; });
             seedSrDefaults();
 

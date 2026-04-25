@@ -60,14 +60,17 @@ if (!$cid || (!$isAdmin && !owns_character($db, $uid, $cid))) {
 
 // ── load ─────────────────────────────────────────────────────
 if ($action === 'load') {
-    // character_id is the PRIMARY KEY so there is always exactly one row.
-    // No ORDER BY needed — the previous "fix" added ORDER BY id which broke
-    // this query because the table has no id column (character_id IS the PK).
     $stmt = $db->prepare('SELECT sheet_json FROM character_data WHERE character_id = ?');
     $stmt->execute([$cid]);
-    $row  = $stmt->fetch();
-    $data = $row ? json_decode($row['sheet_json'], true) : [];
-    echo json_encode(['success' => true, 'data' => $data]);
+    $row = $stmt->fetch();
+    // Return the raw JSON string directly — never decode/re-encode.
+    // json_decode('{}', true) returns a PHP [] which json_encode turns back
+    // into '[]', causing JS to treat sheetData as an Array and JSON.stringify
+    // to silently drop all named properties on save.
+    $raw = ($row && !empty($row['sheet_json'])) ? $row['sheet_json'] : '{}';
+    // Ensure it's a JSON object, not array — if somehow '[]' got stored, reset it
+    if (trim($raw) === '[]') $raw = '{}';
+    echo json_encode(['success' => true, 'raw' => $raw]);
     exit;
 }
 
