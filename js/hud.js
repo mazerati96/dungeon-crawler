@@ -42,8 +42,23 @@ const HUD = (() => {
     // ── API helper ───────────────────────────────────────────
     async function api(params) {
         const body = new URLSearchParams(params);
-        const res = await fetch('api/character.php', { method: 'POST', body });
-        return res.json();
+        console.log('[HUD] → API call:', params.action, '| params:', Object.fromEntries(body));
+        try {
+            const res = await fetch('api/character.php', { method: 'POST', body });
+            const text = await res.text();   // read as text FIRST so we can log it raw
+            console.log('[HUD] ← Raw server response for', params.action, ':', text);
+            try {
+                const json = JSON.parse(text);
+                console.log('[HUD] ← Parsed JSON:', json);
+                return json;
+            } catch (e) {
+                console.error('[HUD] ✕ JSON parse failed for', params.action, '| raw text was:', text);
+                return { success: false, message: 'Bad JSON from server' };
+            }
+        } catch (networkErr) {
+            console.error('[HUD] ✕ Network error for', params.action, ':', networkErr);
+            return { success: false, message: 'Network error' };
+        }
     }
 
     // ── Status bar ───────────────────────────────────────────
@@ -56,15 +71,36 @@ const HUD = (() => {
 
     // ── Save ─────────────────────────────────────────────────
     async function save() {
-        if (!activeCharId) return;
+        if (!activeCharId) {
+            console.warn('[HUD] save() called with no activeCharId — skipping');
+            return;
+        }
+        collectFields();
+        const payload = JSON.stringify(sheetData);
+        console.log('[HUD] save() — activeCharId:', activeCharId);
+        console.log('[HUD] save() — sheetData type:', typeof sheetData, '| isArray:', Array.isArray(sheetData));
+        console.log('[HUD] save() — payload length:', payload.length, '| first 200 chars:', payload.slice(0, 200));
         setStatus('saving');
         const data = await api({
             action: 'save',
             id: activeCharId,
-            sheet_json: JSON.stringify(sheetData),
+            sheet_json: payload,
         });
-        setStatus(data.success ? 'saved' : 'error');
-        isDirty = false;
+        console.log('[HUD] save() — server response:', data);
+        if (data.success) {
+            setStatus('saved');
+            isDirty = false;
+        } else {
+            setStatus('error');
+            console.error('[HUD] save() FAILED:', data.message);
+            // Show error visibly on screen
+            const el = document.getElementById('saveStatus');
+            if (el) {
+                el.textContent = '✕ Save failed: ' + (data.message || 'unknown error');
+                el.style.color = '#ff4444';
+                setTimeout(() => { el.textContent = ''; el.style.color = ''; }, 5000);
+            }
+        }
     }
 
     function markDirty() {
