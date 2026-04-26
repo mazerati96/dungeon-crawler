@@ -22,7 +22,7 @@ const HUD = (() => {
     // Dynamic arrays stored in sheetData
     const ARRAY_KEYS = ['inventory', 'activeSkills', 'passiveSkills', 'party', 'pets',
         'activeQuests', 'completedQuests', 'spells', 'achievements', 'areas', 'statusTags',
-        'srBedroom', 'srTraining', 'srCrafting', 'fanFeed'];
+        'srBedroom', 'srTraining', 'srCrafting', 'fanFeed', 'factions'];
     ARRAY_KEYS.forEach(k => { /* ensure they exist after load */ });
 
     // ── DOM refs ─────────────────────────────────────────────
@@ -42,23 +42,8 @@ const HUD = (() => {
     // ── API helper ───────────────────────────────────────────
     async function api(params) {
         const body = new URLSearchParams(params);
-        console.log('[HUD] → API call:', params.action, '| params:', Object.fromEntries(body));
-        try {
-            const res = await fetch('api/character.php', { method: 'POST', body });
-            const text = await res.text();   // read as text FIRST so we can log it raw
-            console.log('[HUD] ← Raw server response for', params.action, ':', text);
-            try {
-                const json = JSON.parse(text);
-                console.log('[HUD] ← Parsed JSON:', json);
-                return json;
-            } catch (e) {
-                console.error('[HUD] ✕ JSON parse failed for', params.action, '| raw text was:', text);
-                return { success: false, message: 'Bad JSON from server' };
-            }
-        } catch (networkErr) {
-            console.error('[HUD] ✕ Network error for', params.action, ':', networkErr);
-            return { success: false, message: 'Network error' };
-        }
+        const res = await fetch('api/character.php', { method: 'POST', body });
+        return res.json();
     }
 
     // ── Status bar ───────────────────────────────────────────
@@ -71,36 +56,15 @@ const HUD = (() => {
 
     // ── Save ─────────────────────────────────────────────────
     async function save() {
-        if (!activeCharId) {
-            console.warn('[HUD] save() called with no activeCharId — skipping');
-            return;
-        }
-        collectFields();
-        const payload = JSON.stringify(sheetData);
-        console.log('[HUD] save() — activeCharId:', activeCharId);
-        console.log('[HUD] save() — sheetData type:', typeof sheetData, '| isArray:', Array.isArray(sheetData));
-        console.log('[HUD] save() — payload length:', payload.length, '| first 200 chars:', payload.slice(0, 200));
+        if (!activeCharId) return;
         setStatus('saving');
         const data = await api({
             action: 'save',
             id: activeCharId,
-            sheet_json: payload,
+            sheet_json: JSON.stringify(sheetData),
         });
-        console.log('[HUD] save() — server response:', data);
-        if (data.success) {
-            setStatus('saved');
-            isDirty = false;
-        } else {
-            setStatus('error');
-            console.error('[HUD] save() FAILED:', data.message);
-            // Show error visibly on screen
-            const el = document.getElementById('saveStatus');
-            if (el) {
-                el.textContent = '✕ Save failed: ' + (data.message || 'unknown error');
-                el.style.color = '#ff4444';
-                setTimeout(() => { el.textContent = ''; el.style.color = ''; }, 5000);
-            }
-        }
+        setStatus(data.success ? 'saved' : 'error');
+        isDirty = false;
     }
 
     function markDirty() {
@@ -286,7 +250,7 @@ const HUD = (() => {
     function clearAllDynamic() {
         ['invGrid', 'activeSkillsList', 'passiveSkillsList', 'partyList', 'petList',
             'activeQuestList', 'completedQuestList', 'spellList', 'achGrid', 'areaList', 'statusTags',
-            'bedroomList', 'trainingList', 'craftingList', 'fanFeed']
+            'bedroomList', 'trainingList', 'craftingList', 'fanFeed', 'factionList']
             .forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
     }
 
@@ -306,6 +270,7 @@ const HUD = (() => {
         renderSrUpgrades('training');
         renderCraftingTables();
         renderFanFeed();
+        renderFactions();
     }
 
     // ── Inventory ────────────────────────────────────────────
@@ -968,6 +933,215 @@ const HUD = (() => {
         loadCharList();
     }
 
+    // ═══════════════════════════════════════════════════════
+    // FACTIONS
+    // ═══════════════════════════════════════════════════════
+
+    function addFaction() {
+        const input = document.getElementById('factionNameInput');
+        const name = input?.value.trim();
+        if (!name) return;
+        sheetData.factions = sheetData.factions || [];
+        sheetData.factions.push({
+            name,
+            emblem: '',   // base64 data URL
+            // Military
+            milStrength: '',
+            soldiers: '',
+            spellslingers: '',
+            siegeEngines: '',
+            // Relations
+            allies: '',
+            enemies: '',
+            crawlersIn: '',
+            // Economy
+            foodReport: '',
+            economyReport: '',
+            // Intel
+            spyReports: '',
+            assassinReports: '',
+            // Finance
+            income: '',
+            expense: '',
+            // Orders
+            requests: '',
+            needs: '',
+        });
+        input.value = '';
+        markDirty();
+        renderFactions();
+    }
+
+    // Update a single field on a faction in-place
+    function updateFactionField(idx, field, value) {
+        if (!sheetData.factions?.[idx]) return;
+        sheetData.factions[idx][field] = value;
+        markDirty();
+    }
+
+    // Handle emblem image upload — converts to base64, caps at 512KB
+    function handleEmblemUpload(idx, input) {
+        const file = input.files?.[0];
+        if (!file) return;
+        if (file.size > 512 * 1024) {
+            alert('Emblem image must be under 512KB. Please resize it and try again.');
+            input.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = e => {
+            updateFactionField(idx, 'emblem', e.target.result);
+            // Update the preview img in the card without full re-render
+            const preview = document.getElementById(`emblem-preview-${idx}`);
+            const placeholder = document.getElementById(`emblem-placeholder-${idx}`);
+            if (preview) { preview.src = e.target.result; preview.classList.remove('hidden'); }
+            if (placeholder) placeholder.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearEmblem(idx) {
+        updateFactionField(idx, 'emblem', '');
+        const preview = document.getElementById(`emblem-preview-${idx}`);
+        const placeholder = document.getElementById(`emblem-placeholder-${idx}`);
+        if (preview) { preview.src = ''; preview.classList.add('hidden'); }
+        if (placeholder) placeholder.classList.remove('hidden');
+        // Reset the file input
+        const fileInput = document.getElementById(`emblem-input-${idx}`);
+        if (fileInput) fileInput.value = '';
+        markDirty();
+    }
+
+    function removeFaction(idx) {
+        sheetData.factions.splice(idx, 1);
+        markDirty();
+        renderFactions();
+    }
+
+    function toggleFactionExpanded(idx) {
+        const body = document.getElementById(`faction-body-${idx}`);
+        const chevron = document.getElementById(`faction-chevron-${idx}`);
+        if (!body) return;
+        const isOpen = !body.classList.contains('hidden');
+        body.classList.toggle('hidden', isOpen);
+        if (chevron) chevron.textContent = isOpen ? '▸' : '▾';
+    }
+
+    function renderFactions() {
+        const list = document.getElementById('factionList');
+        const empty = document.getElementById('factionEmpty');
+        const counter = document.getElementById('factionCount');
+        if (!list) return;
+
+        const factions = sheetData.factions || [];
+        if (counter) counter.textContent = factions.length
+            ? `${factions.length} faction${factions.length > 1 ? 's' : ''} tracked`
+            : '';
+
+        // Clear existing cards (leave the empty notice in DOM, toggle it)
+        list.querySelectorAll('.faction-card').forEach(el => el.remove());
+        if (empty) empty.classList.toggle('hidden', factions.length > 0);
+
+        factions.forEach((f, i) => {
+            const card = document.createElement('div');
+            card.className = 'faction-card';
+            card.id = `faction-card-${i}`;
+
+            const hasEmblem = f.emblem && f.emblem.startsWith('data:');
+
+            card.innerHTML = `
+                <!-- Card header (always visible) -->
+                <div class="faction-card-header" onclick="HUD.toggleFactionExpanded(${i})">
+                    <span class="faction-card-icon" id="faction-chevron-${i}">▾</span>
+                    <span class="faction-card-name">${esc(f.name)}</span>
+                    <button class="remove-btn faction-remove" onclick="event.stopPropagation();HUD.removeFaction(${i})" title="Remove faction">✕</button>
+                </div>
+
+                <!-- Card body (collapsible) -->
+                <div class="faction-card-body" id="faction-body-${i}">
+                    <div class="faction-grid">
+
+                        <!-- LEFT COL: Emblem + Name -->
+                        <div class="faction-section faction-emblem-section">
+                            <div class="faction-section-title">◈ IDENTIFICATION</div>
+                            <div class="faction-field-row">
+                                <label class="faction-label">FACTION NAME</label>
+                                <input class="hud-field faction-inline" type="text"
+                                       value="${esc(f.name)}"
+                                       oninput="HUD.updateFactionField(${i},'name',this.value);this.closest('.faction-card').querySelector('.faction-card-name').textContent=this.value" />
+                            </div>
+                            <div class="faction-emblem-box">
+                                <img id="emblem-preview-${i}"
+                                     src="${hasEmblem ? f.emblem : ''}"
+                                     class="faction-emblem-img${hasEmblem ? '' : ' hidden'}"
+                                     alt="Faction emblem" />
+                                <div id="emblem-placeholder-${i}" class="faction-emblem-placeholder${hasEmblem ? ' hidden' : ''}">
+                                    <span>⚑</span>
+                                    <span>EMBLEM</span>
+                                </div>
+                                <label class="faction-emblem-upload-btn" title="Upload emblem image (max 512KB)">
+                                    📁 Upload
+                                    <input type="file" id="emblem-input-${i}" accept="image/*"
+                                           style="display:none"
+                                           onchange="HUD.handleEmblemUpload(${i}, this)" />
+                                </label>
+                                ${hasEmblem ? `<button class="faction-emblem-clear" onclick="HUD.clearEmblem(${i})">✕ Clear</button>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- RIGHT COL: Military -->
+                        <div class="faction-section">
+                            <div class="faction-section-title">⚔ MILITARY</div>
+                            <div class="faction-field-row"><label class="faction-label">MILITARY STRENGTH</label><input class="hud-field faction-inline" type="text" value="${esc(f.milStrength)}" oninput="HUD.updateFactionField(${i},'milStrength',this.value)" /></div>
+                            <div class="faction-field-row"><label class="faction-label">SOLDIERS</label><input class="hud-field faction-inline" type="text" value="${esc(f.soldiers)}" oninput="HUD.updateFactionField(${i},'soldiers',this.value)" /></div>
+                            <div class="faction-field-row"><label class="faction-label">SPELLSLINGERS</label><input class="hud-field faction-inline" type="text" value="${esc(f.spellslingers)}" oninput="HUD.updateFactionField(${i},'spellslingers',this.value)" /></div>
+                            <div class="faction-field-row"><label class="faction-label">SIEGE ENGINES</label><input class="hud-field faction-inline" type="text" value="${esc(f.siegeEngines)}" oninput="HUD.updateFactionField(${i},'siegeEngines',this.value)" /></div>
+                        </div>
+
+                        <!-- Known Enemies/Allies -->
+                        <div class="faction-section">
+                            <div class="faction-section-title">🤝 ALLIES &amp; ENEMIES</div>
+                            <div class="faction-field-col"><label class="faction-label">ALLIES</label><textarea class="hud-textarea faction-textarea" rows="2" oninput="HUD.updateFactionField(${i},'allies',this.value)">${esc(f.allies)}</textarea></div>
+                            <div class="faction-field-col"><label class="faction-label">ENEMIES</label><textarea class="hud-textarea faction-textarea" rows="2" oninput="HUD.updateFactionField(${i},'enemies',this.value)">${esc(f.enemies)}</textarea></div>
+                            <div class="faction-field-col"><label class="faction-label">CRAWLERS IN FACTION</label><textarea class="hud-textarea faction-textarea" rows="2" oninput="HUD.updateFactionField(${i},'crawlersIn',this.value)">${esc(f.crawlersIn)}</textarea></div>
+                        </div>
+
+                        <!-- Food & Economy -->
+                        <div class="faction-section">
+                            <div class="faction-section-title">🌾 FOOD &amp; ECONOMY</div>
+                            <div class="faction-field-col"><label class="faction-label">FOOD REPORT</label><textarea class="hud-textarea faction-textarea" rows="3" oninput="HUD.updateFactionField(${i},'foodReport',this.value)">${esc(f.foodReport)}</textarea></div>
+                            <div class="faction-field-col"><label class="faction-label">ECONOMY REPORT</label><textarea class="hud-textarea faction-textarea" rows="3" oninput="HUD.updateFactionField(${i},'economyReport',this.value)">${esc(f.economyReport)}</textarea></div>
+                        </div>
+
+                        <!-- Spy/Assassin Reports -->
+                        <div class="faction-section">
+                            <div class="faction-section-title">🗡 SPY / ASSASSIN REPORTS</div>
+                            <div class="faction-field-col"><label class="faction-label">SPY REPORTS</label><textarea class="hud-textarea faction-textarea" rows="4" oninput="HUD.updateFactionField(${i},'spyReports',this.value)">${esc(f.spyReports)}</textarea></div>
+                            <div class="faction-field-col"><label class="faction-label">ASSASSIN REPORTS</label><textarea class="hud-textarea faction-textarea" rows="4" oninput="HUD.updateFactionField(${i},'assassinReports',this.value)">${esc(f.assassinReports)}</textarea></div>
+                        </div>
+
+                        <!-- Warlord Income/Expense -->
+                        <div class="faction-section">
+                            <div class="faction-section-title">💰 WARLORD INCOME / EXPENSE</div>
+                            <div class="faction-field-row"><label class="faction-label">INCOME</label><input class="hud-field faction-inline" type="text" value="${esc(f.income)}" oninput="HUD.updateFactionField(${i},'income',this.value)" /></div>
+                            <div class="faction-field-row"><label class="faction-label">EXPENSE</label><input class="hud-field faction-inline" type="text" value="${esc(f.expense)}" oninput="HUD.updateFactionField(${i},'expense',this.value)" /></div>
+                        </div>
+
+                        <!-- Order Requests / Citizen Needs -->
+                        <div class="faction-section">
+                            <div class="faction-section-title">📋 ORDERS &amp; CITIZEN NEEDS</div>
+                            <div class="faction-field-col"><label class="faction-label">ORDER REQUESTS</label><textarea class="hud-textarea faction-textarea" rows="3" oninput="HUD.updateFactionField(${i},'requests',this.value)">${esc(f.requests)}</textarea></div>
+                            <div class="faction-field-col"><label class="faction-label">CITIZEN NEEDS</label><textarea class="hud-textarea faction-textarea" rows="3" oninput="HUD.updateFactionField(${i},'needs',this.value)">${esc(f.needs)}</textarea></div>
+                        </div>
+
+                    </div><!-- /faction-grid -->
+                </div><!-- /faction-card-body -->
+            `;
+
+            list.appendChild(card);
+        });
+    }
+
     // Public API
     return {
         init, save, loadCharacter,
@@ -978,6 +1152,7 @@ const HUD = (() => {
         addSrUpgrade, toggleSrOwned,
         addCraftingTable, toggleCraftOwned, addCraftLogEntry, removeCraftLogEntry,
         addFanEntry,
+        addFaction, removeFaction, updateFactionField, handleEmblemUpload, clearEmblem, toggleFactionExpanded,
         openNewCharModal, closeNewCharModal, createCharacter,
         openDelCharModal, closeDelCharModal, confirmDelete,
     };

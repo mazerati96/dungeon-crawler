@@ -1737,3 +1737,277 @@ body {
     .fame-mirror-note strong {
         color: var(--clr-glow);
     }
+
+/* ═══════════════════════════════════════════════════════════
+   FACTIONS TAB
+═══════════════════════════════════════════════════════════ */
+
+.faction-topbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+
+.faction-add-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex: 1;
+}
+
+.faction-count {
+    font-family: var(--font-hud);
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    color: var(--clr-text-dim);
+    white-space: nowrap;
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.faction-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 3rem 1rem;
+    color: var(--clr-text-dim);
+    font-size: 0.8rem;
+    border: 1px dashed var(--clr-border-dim);
+}
+
+/* ── Faction card ────────────────────────────────────────── */
+.faction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.faction-card {
+    background: var(--clr-panel);
+    border: 1px solid var(--clr-border-dim);
+    position: relative;
+    transition: border-color 0.2s;
+}
+
+    .faction-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--clr-glow), transparent);
+        opacity: 0.3;
+    }
+
+    .faction-card:hover {
+        border-color: rgba(0,200,255,0.35);
+    }
+
+/* ── Card header ─────────────────────────────────────────── */
+.faction-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--clr-border-dim);
+    transition: background 0.15s;
+}
+
+    .faction-card-header:hover {
+        background: rgba(0,200,255,0.03);
+    }
+
+.faction-card-icon {
+    font-size: 0.7rem;
+    color: var(--clr-glow);
+    flex: 0 0 auto;
+    width: 14px;
+    text-align: center;
+}
+
+.faction-card-name {
+    font-family: var(--font-hud);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--clr-glow);
+    text-shadow: 0 0 8px var(--clr-glow);
+    flex: 1;
+}
+
+.faction-remove {
+    margin-left: auto;
+    flex: 0 0 auto;
+}
+
+/* ── Card body ───────────────────────────────────────────── */
+.faction-card-body {
+    padding: 1rem;
+}
+
+    .faction-card-body.hidden {
+        display: none;
+    }
+
+/* ── Faction grid (2-col, matching Canva layout) ─────────── */
+.faction-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.faction-section {
+    background: rgba(0,15,30,0.6);
+    border: 1px solid var(--clr-border-dim);
+    padding: 0.85rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.faction-section-title {
+    font-family: var(--font-hud);
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    color: var(--clr-glow);
+    text-shadow: 0 0 6px var(--clr-glow);
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--clr-border-dim);
+    margin-bottom: 0.2rem;
+}
+
+/* ── Field rows inside a section ─────────────────────────── */
+.faction-field-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.faction-field-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.faction-label {
+    font-family: var(--font-hud);
+    font-size: 0.5rem;
+    letter-spacing: 0.14em;
+    color: var(--clr-label);
+    white-space: nowrap;
+    flex: 0 0 auto;
+    min-width: 120px;
+}
+
+.faction-inline {
+    flex: 1;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.45rem;
+}
+
+.faction-textarea {
+    width: 100%;
+    font-size: 0.78rem;
+    padding: 0.35rem 0.5rem;
+    resize: vertical;
+    min-height: 52px;
+}
+
+/* ── Emblem section ──────────────────────────────────────── */
+.faction-emblem-section {
+    gap: 0.65rem;
+}
+
+.faction-emblem-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.faction-emblem-img {
+    width: 100%;
+    max-width: 180px;
+    max-height: 180px;
+    object-fit: contain;
+    border: 1px solid var(--clr-border-dim);
+    background: rgba(0,10,20,0.8);
+    padding: 0.35rem;
+}
+
+    .faction-emblem-img.hidden {
+        display: none;
+    }
+
+.faction-emblem-placeholder {
+    width: 140px;
+    height: 140px;
+    border: 1px dashed var(--clr-border-dim);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    color: var(--clr-text-dim);
+    font-family: var(--font-hud);
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+}
+
+    .faction-emblem-placeholder span:first-child {
+        font-size: 2rem;
+        opacity: 0.3;
+    }
+
+    .faction-emblem-placeholder.hidden {
+        display: none;
+    }
+
+.faction-emblem-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: transparent;
+    border: 1px solid var(--clr-accent);
+    color: var(--clr-accent);
+    font-family: var(--font-hud);
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    padding: 0.3rem 0.65rem;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+    .faction-emblem-upload-btn:hover {
+        background: rgba(0,128,255,0.1);
+        box-shadow: 0 0 8px rgba(0,128,255,0.25);
+    }
+
+.faction-emblem-clear {
+    background: transparent;
+    border: 1px solid var(--clr-border-dim);
+    color: var(--clr-text-dim);
+    font-family: var(--font-hud);
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+    .faction-emblem-clear:hover {
+        color: var(--clr-warn);
+        border-color: var(--clr-warn);
+    }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 700px) {
+    .faction-grid {
+        grid-template-columns: 1fr;
+    }
+}

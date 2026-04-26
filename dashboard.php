@@ -72,6 +72,9 @@ $username = htmlspecialchars($_SESSION['username']);
         <button class="tab-btn" data-tab="saferoom">
             <span class="tab-icon">⌂</span> SAFE ROOM
         </button>
+        <button class="tab-btn" data-tab="factions">
+            <span class="tab-icon">⚑</span> FACTIONS
+        </button>
     </nav>
 
     <!-- ══════════════════════════════════════════════════════
@@ -629,6 +632,27 @@ $username = htmlspecialchars($_SESSION['username']);
                         </div>
                         <div class="fan-feed" id="fanFeed"></div>
                     </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ── TAB: FACTIONS ─────────────────────────────────── -->
+        <section class="tab-panel" id="tab-factions">
+
+            <div class="faction-topbar">
+                <div class="faction-add-row">
+                    <input class="hud-input" type="text" id="factionNameInput"
+                           placeholder="Faction name…" style="flex:1;max-width:320px" />
+                    <button class="hud-btn-sm" onclick="HUD.addFaction()">⚑ ADD FACTION</button>
+                </div>
+                <span class="faction-count" id="factionCount"></span>
+            </div>
+
+            <div class="faction-list" id="factionList">
+                <div class="faction-empty" id="factionEmpty">
+                    <span style="font-size:1.5rem">⚑</span>
+                    <p>No factions tracked yet. Add one above.</p>
                 </div>
             </div>
 
