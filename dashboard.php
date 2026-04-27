@@ -36,6 +36,9 @@ $username = htmlspecialchars($_SESSION['username']);
         </div>
         <div class="topbar-right">
             <span class="topbar-user">⬡ <?= $username ?></span>
+            <?php if (!empty($_SESSION['is_admin'])): ?>
+                <a class="hud-btn-sm" href="admin_dashboard.php" style="border-color:var(--clr-warn);color:var(--clr-warn);">⬡ ADMIN</a>
+            <?php endif; ?>
             <button class="hud-btn-sm" id="saveBtn">SAVE</button>
             <a class="hud-btn-sm danger" href="logout.php">LOGOUT</a>
         </div>
