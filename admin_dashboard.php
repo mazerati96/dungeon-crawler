@@ -31,6 +31,7 @@ $adminName = htmlspecialchars($_SESSION['username'] ?? 'admin');
         </div>
         <div class="topbar-spacer"></div>
         <span class="topbar-admin-name">Logged in as <strong><?= $adminName ?></strong></span>
+        <a class="hud-btn-sm" href="admin.php" style="border-color:#00c8ff;color:#00c8ff;">⬡ ADMIN JSON VIEWER</a>
         <a class="hud-btn-sm" href="logout.php">LOGOUT</a>
     </header>
 
