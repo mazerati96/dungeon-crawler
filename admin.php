@@ -34,6 +34,7 @@ $adminName = htmlspecialchars($_SESSION['username']);
         </div>
         <div class="topbar-spacer"></div>
         <span class="topbar-admin-name">Logged in as <strong><?= $adminName ?></strong></span>
+        <a class="hud-btn-sm" href="admin_dashboard.php" style="border-color:#00c8ff;color:#00c8ff;">⬡ CRAWLER VIEWER</a>
         <a class="hud-btn-sm" href="logout.php">LOGOUT</a>
     </header>
 
