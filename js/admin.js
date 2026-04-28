@@ -574,10 +574,10 @@ const Admin = (() => {
             ['Food Box (Kitchen)', d.upgradeFood],
             ['Storage Unit', d.upgradeStorage],
             ['De-Sleeving Box', d.upgradeDeSleeve],
-            ['Deity's Box',             d.upgradeDeity],
+            ["Deity's Box", d.upgradeDeity],
             ['Demolition Workshop', d.upgradeWorkshop],
-                ['Second Scratch Pad', d.upgradeScratchpad],
-            ];
+            ['Second Scratch Pad', d.upgradeScratchpad],
+        ];
         const bedroomList = Array.isArray(d.bedroomUpgrades) ? d.bedroomUpgrades : [];
         const trainingList = Array.isArray(d.trainingRooms) ? d.trainingRooms : [];
         const craftingList = Array.isArray(d.craftingTables) ? d.craftingTables : [];
