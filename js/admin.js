@@ -701,12 +701,15 @@ const Admin = (() => {
     }
 
     // Jump to inspector from crawlers tab
+    // Works for both admin.php (tab="rawdata") and admin_dashboard.php (tab="inspector")
     async function jumpToInspector(uid, cid, charName) {
-        // Switch to rawdata tab
+        const tabName = document.querySelector('[data-tab="inspector"]') ? 'inspector' : 'rawdata';
+        const panelId = tabName === 'inspector' ? 'tab-inspector' : 'tab-rawdata';
+
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        document.querySelector('[data-tab="rawdata"]').classList.add('active');
-        document.getElementById('tab-rawdata').classList.add('active');
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        document.getElementById(panelId).classList.add('active');
 
         await loadInspectorUsers();
         document.getElementById('inspectorUserSelect').value = uid;
