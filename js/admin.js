@@ -67,7 +67,7 @@ const Admin = (() => {
                 // Lazy-load data on first visit
                 if (tabId === 'stats') loadStats();
                 if (tabId === 'crawlers') loadCrawlers();
-                if (tabId === 'rawdata') loadInspectorUsers();
+                if (tabId === 'rawdata' || tabId === 'inspector') loadInspectorUsers();
                 if (tabId === 'audit') loadAudit(true);
             });
         });
