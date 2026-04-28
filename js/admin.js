@@ -1,26 +1,27 @@
 // ============================================================
 //  js/admin.js  —  System AI Dashboard
 //
-//  Four tabs: Stats, All Crawlers, Inspector (Sheet+JSON), Audit Log
+//  Four tabs: Stats, All Crawlers, Raw Data, Audit Log
 //  All mutations go through api/admin.php
 // ============================================================
 
 const Admin = (() => {
 
     // ── State ────────────────────────────────────────────────
-    let allUsers = [];
+    let allUsers = [];   // full user list cache
     let auditOffset = 0;
     let auditTotal = 0;
     const AUDIT_LIMIT = 75;
 
+    // Pending modal targets
     let pendingBanUid = null;
     let pendingDeleteUid = null;
     let pendingDeleteUname = null;
     let pendingDeleteCharId = null;
 
+    // Inspector state
     let inspectorCharId = null;
     let inspectorSheetData = null;
-    let inspectorMode = 'sheet'; // 'sheet' | 'json'
 
     // ── API helper ───────────────────────────────────────────
     async function api(params, method = 'POST') {
@@ -53,11 +54,6 @@ const Admin = (() => {
         });
     }
 
-    function val(v, fallback = '—') {
-        if (v == null || v === '') return fallback;
-        return esc(String(v));
-    }
-
     // ── Tab switching ────────────────────────────────────────
     function initTabs() {
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -68,9 +64,10 @@ const Admin = (() => {
                 btn.classList.add('active');
                 document.getElementById('tab-' + tabId)?.classList.add('active');
 
+                // Lazy-load data on first visit
                 if (tabId === 'stats') loadStats();
                 if (tabId === 'crawlers') loadCrawlers();
-                if (tabId === 'inspector') loadInspectorUsers();
+                if (tabId === 'rawdata') loadInspectorUsers();
                 if (tabId === 'audit') loadAudit(true);
             });
         });
@@ -120,7 +117,7 @@ const Admin = (() => {
     }
 
     // ═══════════════════════════════════════════════════════
-    //  CRAWLERS TAB
+    //  ALL CRAWLERS TAB
     // ═══════════════════════════════════════════════════════
     async function loadCrawlers() {
         const data = await apiGet({ action: 'users' });
@@ -138,6 +135,7 @@ const Admin = (() => {
             const isBanned = u.is_banned == 1;
             const isAdmin = u.is_admin == 1;
 
+            // Main row
             const tr = document.createElement('tr');
             if (isBanned) tr.classList.add('banned');
             tr.innerHTML = `
@@ -157,7 +155,7 @@ const Admin = (() => {
                     <div class="action-btns">
                         ${!isAdmin && !isBanned ? `<button class="btn-xs ban"   onclick="Admin.openBanModal(${u.id}, '${esc(u.username)}')">BAN</button>` : ''}
                         ${!isAdmin && isBanned ? `<button class="btn-xs unban" onclick="Admin.unbanUser(${u.id})">UNBAN</button>` : ''}
-                        ${!isAdmin ? `<button class="btn-xs del"   onclick="Admin.openDeleteUserModal(${u.id}, '${esc(u.username)}')">DELETE</button>` : ''}
+                        ${!isAdmin ? `<button class="btn-xs del" onclick="Admin.openDeleteUserModal(${u.id}, '${esc(u.username)}')">DELETE</button>` : ''}
                     </div>
                 </td>`;
             tbody.appendChild(tr);
@@ -192,10 +190,12 @@ const Admin = (() => {
         const list = document.getElementById(`chars-list-${uid}`);
         const isOpen = row.classList.contains('open');
 
+        // Close all other open rows
         document.querySelectorAll('.chars-row.open').forEach(r => r.classList.remove('open'));
 
         if (!isOpen) {
             row.classList.add('open');
+            // Load chars if not yet loaded
             if (list.innerHTML === '') {
                 const data = await apiGet({ action: 'user_chars', uid });
                 const inner = row.querySelector('.chars-inner-title');
@@ -219,7 +219,7 @@ const Admin = (() => {
     }
 
     // ═══════════════════════════════════════════════════════
-    //  INSPECTOR TAB — Sheet View + JSON Toggle
+    //  RAW DATA / JSON INSPECTOR TAB
     // ═══════════════════════════════════════════════════════
     async function loadInspectorUsers() {
         if (allUsers.length === 0) await loadCrawlers();
@@ -237,11 +237,9 @@ const Admin = (() => {
         const uid = document.getElementById('inspectorUserSelect').value;
         const sel = document.getElementById('inspectorCharSelect');
         sel.innerHTML = '<option value="">— Select character —</option>';
-        clearSheetView();
         document.getElementById('jsonEditor').value = '';
         document.getElementById('jsonCharLabel').textContent = 'No character selected';
         inspectorCharId = null;
-        inspectorSheetData = null;
         if (!uid) return;
 
         const data = await apiGet({ action: 'user_chars', uid });
@@ -254,360 +252,425 @@ const Admin = (() => {
         });
     }
 
-    async function inspectorLoadSheet() {
+    async function inspectorLoadJson() {
         const cid = document.getElementById('inspectorCharSelect').value;
         const label = document.getElementById('jsonCharLabel');
-        const status = document.getElementById('jsonStatus');
-        status.textContent = '';
+        const editor = document.getElementById('jsonEditor');
+        const statusEl = document.getElementById('jsonStatus');
+        if (statusEl) statusEl.textContent = '';
 
         if (!cid) {
-            clearSheetView();
-            document.getElementById('jsonEditor').value = '';
-            label.textContent = 'No character selected';
+            if (editor) editor.value = '';
+            if (label) label.textContent = 'No character selected';
             inspectorCharId = null;
             inspectorSheetData = null;
+            renderSheetView(null);
             return;
         }
-
         inspectorCharId = cid;
-        label.textContent = 'Loading…';
+        if (label) label.textContent = 'Loading…';
 
         const data = await apiGet({ action: 'sheet_json', cid });
-        label.textContent = `Character id=${cid}`;
-
+        if (label) label.textContent = `Character id=${cid}`;
         try {
-            inspectorSheetData = JSON.parse(data.raw ?? '{}');
+            const parsed = JSON.parse(data.raw ?? '{}');
+            if (editor) editor.value = JSON.stringify(parsed, null, 2);
+            inspectorSheetData = parsed;
         } catch {
-            inspectorSheetData = {};
+            if (editor) editor.value = data.raw ?? '{}';
+            inspectorSheetData = null;
         }
-
-        // Populate JSON editor
-        document.getElementById('jsonEditor').value = JSON.stringify(inspectorSheetData, null, 2);
-
-        // Render sheet view
         renderSheetView(inspectorSheetData);
+        // wire up view-toggle buttons if present in DOM (admin_dashboard)
+        initViewToggle();
     }
 
-    // Keep old name as alias so jumpToInspector still works
-    const inspectorLoadJson = inspectorLoadSheet;
+    // alias used by admin_dashboard.php
+    const inspectorLoadSheet = inspectorLoadJson;
 
-    // ── Sheet View Renderer ──────────────────────────────────
-    function clearSheetView() {
-        const sv = document.getElementById('sheetView');
-        if (sv) sv.innerHTML = '<div class="sheet-empty">Select a crawler and character to view their sheet.</div>';
+    // ── View toggle (admin_dashboard has these in HTML) ──────────
+    function initViewToggle() {
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => setInspectorView(btn.dataset.mode));
+        });
+        setInspectorView('sheet'); // default to sheet view
     }
 
-    function bar(current, max, cssClass) {
-        const pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0;
-        return `
-            <div class="sv-bar-wrap">
-                <div class="sv-bar ${cssClass}" style="width:${pct}%"></div>
-            </div>`;
-    }
-
-    function renderSheetView(d) {
-        const sv = document.getElementById('sheetView');
-        if (!sv) return;
-
-        // helpers
-        const n = (k, fb = '—') => val(d[k], fb);
-        const num = k => (d[k] != null && d[k] !== '') ? Number(d[k]) : 0;
-
-        // ── IDENTITY ────────────────────────────────────────
-        const identityHtml = `
-            <div class="sv-section sv-identity-section">
-                <div class="sv-section-header">◈ CRAWLER IDENTITY</div>
-                <div class="sv-identity-grid">
-                    <div class="sv-id-block">
-                        <div class="sv-id-label">NAME</div>
-                        <div class="sv-id-value sv-name">${n('charName')}</div>
-                    </div>
-                    <div class="sv-id-block">
-                        <div class="sv-id-label">CLASS / TITLE</div>
-                        <div class="sv-id-value">${n('classTitle')}</div>
-                    </div>
-                    <div class="sv-id-block">
-                        <div class="sv-id-label">RACE</div>
-                        <div class="sv-id-value">${n('race')}</div>
-                    </div>
-                    <div class="sv-id-block">
-                        <div class="sv-id-label">LEVEL</div>
-                        <div class="sv-id-value sv-big-num">${n('level', '1')}</div>
-                    </div>
-                    <div class="sv-id-block">
-                        <div class="sv-id-label">FLOOR</div>
-                        <div class="sv-id-value sv-big-num">${n('floor', '1')}</div>
-                    </div>
-                    <div class="sv-id-block">
-                        <div class="sv-id-label">XP</div>
-                        <div class="sv-id-value sv-big-num">${n('xp', '0')}</div>
-                    </div>
-                </div>
-                ${d.statusTags && d.statusTags.length ? `
-                <div class="sv-tags-row">
-                    ${d.statusTags.map(t => `<span class="sv-tag">${esc(t.tag || t)}</span>`).join('')}
-                </div>` : ''}
-            </div>`;
-
-        // ── VITALS ──────────────────────────────────────────
-        const vitals = [
-            { key: 'hp', cur: 'hpCurrent', max: 'hpMax', label: 'HP', cls: 'bar-hp' },
-            { key: 'mana', cur: 'manaCurrent', max: 'manaMax', label: 'MANA', cls: 'bar-mana' },
-            { key: 'momentum', cur: 'momentumCurrent', max: 'momentumMax', label: 'MOMENTUM', cls: 'bar-momentum' },
-            { key: 'morale', cur: 'moraleCurrent', max: 'moraleMax', label: 'MORALE', cls: 'bar-morale' },
-        ];
-
-        const vitalsHtml = `
-            <div class="sv-section">
-                <div class="sv-section-header">◈ VITALS</div>
-                ${vitals.map(v => {
-            const cur = num(v.cur), mx = num(v.max);
-            return `
-                    <div class="sv-vital-row">
-                        <span class="sv-vital-label ${v.cls}-label">${v.label}</span>
-                        <span class="sv-vital-nums">${cur} / ${mx}</span>
-                        ${bar(cur, mx, v.cls)}
-                    </div>`;
-        }).join('')}
-                ${d.armorClass != null ? `
-                <div class="sv-vital-row">
-                    <span class="sv-vital-label">ARMOR CLASS</span>
-                    <span class="sv-vital-nums">${n('armorClass')}</span>
-                </div>` : ''}
-            </div>`;
-
-        // ── CORE STATS ──────────────────────────────────────
-        const coreStats = [
-            ['STR', 'strength'], ['DEX', 'dexterity'], ['INT', 'intelligence'],
-            ['WIS', 'wisdom'], ['CON', 'constitution'], ['CHA', 'charisma'],
-        ];
-
-        const statsHtml = `
-            <div class="sv-section">
-                <div class="sv-section-header">◈ CORE STATS</div>
-                <div class="sv-stat-grid">
-                    ${coreStats.map(([label, key]) => {
-            const v = d[key] != null ? d[key] : '—';
-            return `<div class="sv-stat-block">
-                            <div class="sv-stat-val">${esc(String(v))}</div>
-                            <div class="sv-stat-key">${label}</div>
-                        </div>`;
-        }).join('')}
-                </div>
-                ${d.luck != null ? `<div class="sv-mini-stat">LUCK <span>${n('luck')}</span></div>` : ''}
-                ${d.speed != null ? `<div class="sv-mini-stat">SPEED <span>${n('speed')}</span></div>` : ''}
-                ${d.initiative != null ? `<div class="sv-mini-stat">INIT <span>${n('initiative')}</span></div>` : ''}
-            </div>`;
-
-        // ── COMBAT ──────────────────────────────────────────
-        const combatFields = [
-            ['ATTACK BONUS', 'attackBonus'],
-            ['DAMAGE BONUS', 'damageBonus'],
-            ['CRIT RANGE', 'critRange'],
-            ['SAVE BONUS', 'saveBonus'],
-            ['SPELL ATTACK', 'spellAttack'],
-            ['SPELL SAVE DC', 'spellSaveDC'],
-        ].filter(([, k]) => d[k] != null && d[k] !== '');
-
-        const combatHtml = combatFields.length ? `
-            <div class="sv-section">
-                <div class="sv-section-header">◈ COMBAT</div>
-                <div class="sv-kv-list">
-                    ${combatFields.map(([label, key]) =>
-            `<div class="sv-kv-row"><span class="sv-kv-key">${label}</span><span class="sv-kv-val">${n(key)}</span></div>`
-        ).join('')}
-                </div>
-                ${d.combatNotes ? `<div class="sv-notes-block">${n('combatNotes')}</div>` : ''}
-            </div>` : '';
-
-        // ── COLLAPSIBLE SECTIONS ─────────────────────────────
-        function collapsibleList(id, header, icon, items, renderItem, emptyMsg = 'None.') {
-            if (!items || !items.length) return `
-                <div class="sv-section sv-collapsible">
-                    <div class="sv-section-header sv-collapsible-header" onclick="Admin.toggleCollapse('${id}')">
-                        ${icon} ${header} <span class="sv-collapse-badge">0</span>
-                        <span class="sv-collapse-arrow">▾</span>
-                    </div>
-                    <div class="sv-collapse-body collapsed" id="${id}">
-                        <div class="sv-empty">${emptyMsg}</div>
-                    </div>
-                </div>`;
-            return `
-                <div class="sv-section sv-collapsible">
-                    <div class="sv-section-header sv-collapsible-header" onclick="Admin.toggleCollapse('${id}')">
-                        ${icon} ${header} <span class="sv-collapse-badge">${items.length}</span>
-                        <span class="sv-collapse-arrow">▾</span>
-                    </div>
-                    <div class="sv-collapse-body" id="${id}">
-                        ${items.map(renderItem).join('')}
-                    </div>
-                </div>`;
-        }
-
-        // Inventory
-        const invHtml = collapsibleList('sv-inv', 'INVENTORY', '⊞',
-            d.inventory,
-            item => `<div class="sv-list-row">
-                <span class="sv-list-name">${esc(item.name || '?')}</span>
-                ${item.qty ? `<span class="sv-list-meta">×${esc(item.qty)}</span>` : ''}
-                ${item.type ? `<span class="sv-tag-sm">${esc(item.type)}</span>` : ''}
-                ${item.notes ? `<span class="sv-list-notes">${esc(item.notes)}</span>` : ''}
-            </div>`
-        );
-
-        // Active Skills
-        const activeSkillsHtml = collapsibleList('sv-active-skills', 'ACTIVE SKILLS', '◉',
-            d.activeSkills,
-            s => `<div class="sv-list-row">
-                <span class="sv-list-name">${esc(s.name || '?')}</span>
-                ${s.rank ? `<span class="sv-list-meta">Rank ${esc(s.rank)}</span>` : ''}
-                ${s.notes ? `<span class="sv-list-notes">${esc(s.notes)}</span>` : ''}
-            </div>`
-        );
-
-        // Passive Skills
-        const passiveSkillsHtml = collapsibleList('sv-passive-skills', 'PASSIVE SKILLS', '◎',
-            d.passiveSkills,
-            s => `<div class="sv-list-row">
-                <span class="sv-list-name">${esc(s.name || '?')}</span>
-                ${s.rank ? `<span class="sv-list-meta">Rank ${esc(s.rank)}</span>` : ''}
-                ${s.notes ? `<span class="sv-list-notes">${esc(s.notes)}</span>` : ''}
-            </div>`
-        );
-
-        // Spells
-        const spellsHtml = collapsibleList('sv-spells', 'MAGIC / SPELLS', '◈',
-            d.spells,
-            sp => `<div class="sv-list-row">
-                <span class="sv-list-name">${esc(sp.name || '?')}</span>
-                ${sp.level ? `<span class="sv-tag-sm">Lv ${esc(sp.level)}</span>` : ''}
-                ${sp.school ? `<span class="sv-list-meta">${esc(sp.school)}</span>` : ''}
-                ${sp.notes ? `<span class="sv-list-notes">${esc(sp.notes)}</span>` : ''}
-            </div>`
-        );
-
-        // Party
-        const partyHtml = collapsibleList('sv-party', 'PARTY', '◎',
-            d.party,
-            m => `<div class="sv-list-row">
-                <span class="sv-list-name">${esc(m.name || '?')}</span>
-                ${m.role ? `<span class="sv-tag-sm">${esc(m.role)}</span>` : ''}
-                ${m.relation ? `<span class="sv-list-meta">${esc(m.relation)}</span>` : ''}
-            </div>`
-        );
-
-        // Quests
-        const questsActive = collapsibleList('sv-quests-active', 'ACTIVE QUESTS', '◇',
-            d.activeQuests,
-            q => `<div class="sv-list-row">
-                <span class="sv-list-name">${esc(q.title || q.name || '?')}</span>
-                ${q.priority ? `<span class="sv-tag-sm">${esc(q.priority)}</span>` : ''}
-                ${q.notes ? `<span class="sv-list-notes">${esc(q.notes)}</span>` : ''}
-            </div>`
-        );
-
-        const questsDone = collapsibleList('sv-quests-done', 'COMPLETED QUESTS', '◇',
-            d.completedQuests,
-            q => `<div class="sv-list-row sv-list-row-done">
-                <span class="sv-list-name">${esc(q.title || q.name || '?')}</span>
-                <span class="sv-list-meta sv-done-tick">✓</span>
-            </div>`
-        );
-
-        // Achievements
-        const achHtml = collapsibleList('sv-ach', 'ACHIEVEMENTS', '★',
-            d.achievements,
-            a => `<div class="sv-list-row">
-                <span class="sv-list-name">${esc(a.title || a.name || '?')}</span>
-                ${a.date ? `<span class="sv-list-meta">${esc(a.date)}</span>` : ''}
-            </div>`
-        );
-
-        // ── NOTES ───────────────────────────────────────────
-        const notesFields = [
-            ['BACKGROUND', 'background'],
-            ['PERSONALITY', 'personality'],
-            ['BONDS', 'bonds'],
-            ['FLAWS', 'flaws'],
-            ['GOALS', 'goals'],
-            ['GENERAL NOTES', 'notes'],
-        ].filter(([, k]) => d[k]);
-
-        const notesHtml = notesFields.length ? `
-            <div class="sv-section">
-                <div class="sv-section-header">◈ NOTES & LORE</div>
-                ${notesFields.map(([label, key]) => `
-                    <div class="sv-notes-group">
-                        <div class="sv-notes-label">${label}</div>
-                        <div class="sv-notes-block">${n(key)}</div>
-                    </div>`).join('')}
-            </div>` : '';
-
-        // ── SAFE ROOM ────────────────────────────────────────
-        const srFields = [
-            ['LOCATION', 'safeRoom'], ['TIER', 'safeRoomTier'], ['GOLD', 'gold'],
-        ].filter(([, k]) => d[k] != null && d[k] !== '');
-
-        const safeRoomHtml = srFields.length ? `
-            <div class="sv-section">
-                <div class="sv-section-header">⌂ SAFE ROOM</div>
-                <div class="sv-kv-list">
-                    ${srFields.map(([label, key]) =>
-            `<div class="sv-kv-row"><span class="sv-kv-key">${label}</span><span class="sv-kv-val">${n(key)}</span></div>`
-        ).join('')}
-                </div>
-                ${d.sponsorName ? `
-                <div class="sv-kv-list" style="margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--clr-border-dim)">
-                    <div class="sv-kv-row"><span class="sv-kv-key">SPONSOR</span><span class="sv-kv-val">${n('sponsorName')}</span></div>
-                    ${d.sponsorStatus ? `<div class="sv-kv-row"><span class="sv-kv-key">STATUS</span><span class="sv-kv-val">${n('sponsorStatus')}</span></div>` : ''}
-                    ${d.sponsorValue ? `<div class="sv-kv-row"><span class="sv-kv-key">CONTRACT</span><span class="sv-kv-val">${n('sponsorValue')}</span></div>` : ''}
-                </div>` : ''}
-            </div>` : '';
-
-        // ── ASSEMBLE ─────────────────────────────────────────
-        sv.innerHTML = `
-            <div class="sv-layout">
-                <div class="sv-col-main">
-                    ${identityHtml}
-                    ${vitalsHtml}
-                    ${statsHtml}
-                    ${combatHtml}
-                    ${notesHtml}
-                    ${safeRoomHtml}
-                </div>
-                <div class="sv-col-side">
-                    ${invHtml}
-                    ${activeSkillsHtml}
-                    ${passiveSkillsHtml}
-                    ${spellsHtml}
-                    ${partyHtml}
-                    ${questsActive}
-                    ${questsDone}
-                    ${achHtml}
-                </div>
-            </div>`;
-    }
-
-    function toggleCollapse(id) {
-        const body = document.getElementById(id);
-        if (!body) return;
-        body.classList.toggle('collapsed');
-        const arrow = body.previousElementSibling?.querySelector('.sv-collapse-arrow');
-        if (arrow) arrow.textContent = body.classList.contains('collapsed') ? '▾' : '▴';
-    }
-
-    // ── Inspector view mode toggle ───────────────────────────
-    function setInspectorMode(mode) {
-        inspectorMode = mode;
-        document.getElementById('sheetView').classList.toggle('hidden', mode !== 'sheet');
-        document.getElementById('jsonPane').classList.toggle('hidden', mode !== 'json');
-
+    function setInspectorView(mode) {
+        const sheetEl = document.getElementById('sheetView');
+        const jsonPane = document.getElementById('jsonPane');
+        const jsonCtrl = document.getElementById('jsonControls');
         document.querySelectorAll('.view-toggle-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.mode === mode);
         });
+        if (mode === 'sheet') {
+            sheetEl?.classList.remove('hidden');
+            if (jsonPane) jsonPane.classList.add('hidden');
+            if (jsonCtrl) jsonCtrl.classList.add('hidden');
+        } else {
+            sheetEl?.classList.add('hidden');
+            jsonPane?.classList.remove('hidden');
+            jsonCtrl?.classList.remove('hidden');
+        }
     }
 
-    // ── JSON editor helpers ──────────────────────────────────
+    // ══════════════════════════════════════════════════════════════
+    //  SHEET VIEW RENDERER — mirrors dashboard.php field names
+    // ══════════════════════════════════════════════════════════════
+    function renderSheetView(d) {
+        const el = document.getElementById('sheetView');
+        if (!el) return;
+        if (!d) {
+            el.innerHTML = '<div class="sheet-empty">Select a crawler and character to view their sheet.</div>';
+            return;
+        }
+
+        // ── helpers ────────────────────────────────────────────
+        const e = str => esc(str);
+
+        const field = (label, val) => {
+            const v = (val !== undefined && val !== null && val !== '')
+                ? `<span class="sv-val">${e(String(val))}</span>`
+                : `<span class="sv-val sv-none">—</span>`;
+            return `<div class="sv-field"><span class="sv-label">${label}</span>${v}</div>`;
+        };
+
+        const textarea = (label, val) => {
+            if (!val) return '';
+            return `<div class="sv-textarea-block">
+                <div class="sv-label">${label}</div>
+                <div class="sv-textarea-body">${e(String(val))}</div>
+            </div>`;
+        };
+
+        const vitalBar = (label, cur, max, cls) => {
+            const c = Number(cur) || 0, m = Number(max) || 0;
+            const pct = m > 0 ? Math.min(100, Math.round((c / m) * 100)) : 0;
+            return `<div class="sv-vital-row">
+                <span class="sv-vital-label ${cls}">${label}</span>
+                <div class="sv-vital-bar-wrap"><div class="sv-vital-bar ${cls}" style="width:${pct}%"></div></div>
+                <span class="sv-vital-nums">${c} / ${m}</span>
+            </div>`;
+        };
+
+        const statBox = (label, val) =>
+            `<div class="sv-stat-box"><span class="sv-stat-val">${val ?? '—'}</span><span class="sv-stat-label">${label}</span></div>`;
+
+        const check = (label, val) =>
+            `<div class="sv-check-row"><span class="sv-check-icon">${val ? '✔' : '○'}</span><span class="sv-check-label ${val ? 'owned' : ''}">${label}</span></div>`;
+
+        const section = (icon, title, content) =>
+            `<div class="sv-section"><div class="sv-section-title">${icon} ${title}</div>${content}</div>`;
+
+        const collapsible = (id, icon, title, count, inner) => `
+            <div class="sv-collapsible" id="svc-${id}">
+                <button class="sv-coll-header" onclick="Admin.svToggle('${id}')">
+                    <span class="sv-coll-icon">▸</span>
+                    <span>${icon} ${title}</span>
+                    <span class="sv-coll-count">${count}</span>
+                </button>
+                <div class="sv-coll-body hidden">${inner || '<div class="sv-empty-list">Nothing here.</div>'}</div>
+            </div>`;
+
+        // ── identity ────────────────────────────────────────────
+        const identityHtml = section('◈', 'CRAWLER IDENTITY', `
+            <div class="sv-fields-grid">
+                ${field('CRAWLER NAME', d.charName)}
+                ${field('CLASS / TITLE', d.classTitle)}
+                ${field('SPECIALIZATION', d.classSpec)}
+                ${field('STARTING RACE', d.startingRace)}
+                ${field('EVOLVED RACE', d.evolvedRace)}
+                ${field('CURRENT FLOOR', d.floor)}
+                ${field('LEVEL', d.level)}
+                ${field('EXPERIENCE', d.xp)}
+            </div>
+            ${textarea('NOTES / BACKSTORY', d.backstory)}
+        `);
+
+        // ── personality / resources ─────────────────────────────
+        const personalityHtml = section('◈', 'PERSONALITY & RESOURCES', `
+            <div class="sv-fields-grid">
+                ${field('CATCH PHRASE', d.catchPhrase)}
+                ${field('SIGNATURE MOVE', d.signatureMove)}
+                ${field('PATRON DEITY', d.deity)}
+                ${field('GUILD / FACTION', d.faction)}
+                ${field('GOLD / COINS', d.gold)}
+            </div>
+        `);
+
+        // ── vitals ──────────────────────────────────────────────
+        const vitalsHtml = section('◈', 'VITALS', `
+            ${vitalBar('HP', d.hpCurrent, d.hpMax, 'hp')}
+            ${vitalBar('MANA', d.manaCurrent, d.manaMax, 'mana')}
+            ${vitalBar('MMTM', d.momentumCurrent, d.momentumMax, 'momentum')}
+            ${vitalBar('MORL', d.moraleCurrent, d.moraleMax, 'morale')}
+        `);
+
+        // ── combat ──────────────────────────────────────────────
+        const combatHtml = section('◈', 'COMBAT', `
+            <div class="sv-stat-grid">
+                ${statBox('STR', d.strength)}
+                ${statBox('AGI', d.agility)}
+                ${statBox('INT', d.intelligence)}
+                ${statBox('CON', d.constitution)}
+                ${statBox('CHA', d.charisma)}
+                ${statBox('LCK', d.luck)}
+                ${statBox('DEF', d.defense)}
+                ${statBox('INIT', d.initiative)}
+                ${statBox('SPD', d.speed)}
+            </div>
+        `);
+
+        // ── status effects ──────────────────────────────────────
+        const tags = Array.isArray(d.statusTags) ? d.statusTags : [];
+        const statusHtml = section('◈', 'STATUS EFFECTS', `
+            <div class="sv-status-list">
+                ${tags.length
+                ? tags.map(s => `<span class="sv-status-tag">${e(String(s))}</span>`).join('')
+                : '<div class="sv-empty-list">No active effects.</div>'}
+            </div>
+        `);
+
+        // ── equipped gear ───────────────────────────────────────
+        const gearSlots = [
+            ['HEAD', d.gearHead], ['CHEST', d.gearChest], ['HANDS', d.gearHands],
+            ['LEGS', d.gearLegs], ['FEET', d.gearFeet], ['MAIN HAND', d.gearMainHand],
+            ['OFF HAND', d.gearOffHand], ['ACCESSORY 1', d.gearAcc1],
+            ['ACCESSORY 2', d.gearAcc2], ['TRINKET', d.gearTrinket],
+        ];
+        const gearHtml = section('◈', 'EQUIPPED GEAR', `
+            <div class="sv-gear-grid">
+                ${gearSlots.map(([label, val]) => field(label, val)).join('')}
+            </div>
+        `);
+
+        // ── inventory ───────────────────────────────────────────
+        const invItems = Array.isArray(d.inventory) ? d.inventory : [];
+        const invHtml = collapsible('inventory', '⊞', 'INVENTORY', invItems.length,
+            invItems.map(it => {
+                const name = it.name || it.itemName || '';
+                const rarity = it.rarity ? `<span class="sv-rarity sv-rarity-${it.rarity}">${e(it.rarity)}</span>` : '';
+                const qty = it.qty ? `<span class="sv-li-sub">x${it.qty}</span>` : '';
+                const desc = it.description ? `<span class="sv-li-sub">${e(it.description)}</span>` : '';
+                return `<div class="sv-list-item"><span class="sv-li-name">${e(name)}</span>${rarity}${qty}${desc}</div>`;
+            }).join('')
+        );
+
+        const lootTiers = [
+            ['BRONZE', d.lootBronze], ['SILVER', d.lootSilver], ['GOLD', d.lootGold],
+            ['PLATINUM', d.lootPlatinum], ['LEGENDARY', d.lootLegendary], ['CELESTIAL', d.lootCelestial],
+            ['FAN BOXES', d.lootFan], ['HATER BOXES', d.lootHater],
+        ].filter(([, v]) => v != null && v !== '' && v !== 0 && v !== '0');
+        const lootHtml = lootTiers.length ? `
+            <div class="sv-section sv-section-tight">
+                <div class="sv-section-title">⊞ LOOT BOXES</div>
+                <div class="sv-loot-grid">
+                    ${lootTiers.map(([l, v]) => `<div class="sv-loot-tier"><span class="sv-loot-label">${l}</span><span class="sv-loot-val">${v}</span></div>`).join('')}
+                </div>
+            </div>` : '';
+
+        // ── skills ──────────────────────────────────────────────
+        const renderSkill = sk => {
+            if (typeof sk === 'string') return `<div class="sv-list-item"><span class="sv-li-name">${e(sk)}</span></div>`;
+            const name = sk.name || sk.skillName || '';
+            const meta = [sk.cost && `Cost: ${sk.cost}`, sk.level && `Lv.${sk.level}`, sk.description]
+                .filter(Boolean).map(e).join(' · ');
+            return `<div class="sv-list-item"><span class="sv-li-name">${e(name)}</span>${meta ? `<span class="sv-li-sub">${meta}</span>` : ''}</div>`;
+        };
+        const activeSkills = Array.isArray(d.activeSkills) ? d.activeSkills : [];
+        const passiveSkills = Array.isArray(d.passiveSkills) ? d.passiveSkills : [];
+
+        const hotlistItems = [];
+        for (let i = 1; i <= 10; i++) { if (d[`hotlist${i}`]) hotlistItems.push(`${i}: ${d[`hotlist${i}`]}`); }
+
+        const skillsInner = `
+            ${activeSkills.length ? '<div class="sv-sub-label">ACTIVE</div>' + activeSkills.map(renderSkill).join('') : ''}
+            ${passiveSkills.length ? '<div class="sv-sub-label">PASSIVE</div>' + passiveSkills.map(renderSkill).join('') : ''}
+            ${hotlistItems.length ? '<div class="sv-sub-label">HOTLIST</div>' + hotlistItems.map(h => `<div class="sv-list-item sv-li-hotlist"><span class="sv-li-name">${e(h)}</span></div>`).join('') : ''}
+            ${(!activeSkills.length && !passiveSkills.length) ? '<div class="sv-empty-list">No skills yet.</div>' : ''}`;
+        const skillsHtml = collapsible('skills', '◉', 'SKILLS', activeSkills.length + passiveSkills.length, skillsInner);
+
+        // ── party ───────────────────────────────────────────────
+        const partyMembers = Array.isArray(d.partyMembers) ? d.partyMembers : [];
+        const pets = Array.isArray(d.pets) ? d.pets : [];
+        const partyInner = `
+            ${partyMembers.length ? '<div class="sv-sub-label">MEMBERS</div>' + partyMembers.map(m => {
+            const name = m.name || '';
+            const meta = [m.class, m.level && `Lv.${m.level}`, m.hp && `HP: ${m.hp}`, m.status].filter(Boolean).map(e).join(' · ');
+            return `<div class="sv-list-item"><span class="sv-li-name">${e(name)}</span>${meta ? `<span class="sv-li-sub">${meta}</span>` : ''}</div>`;
+        }).join('') : ''}
+            ${pets.length ? '<div class="sv-sub-label">PETS & FAMILIARS</div>' + pets.map(p => {
+            const name = p.name || (typeof p === 'string' ? p : '');
+            const type = p.type ? `<span class="sv-li-sub">${e(p.type)}</span>` : '';
+            return `<div class="sv-list-item"><span class="sv-li-name">${e(name)}</span>${type}</div>`;
+        }).join('') : ''}
+            ${(!partyMembers.length && !pets.length) ? '<div class="sv-empty-list">No party members.</div>' : ''}`;
+        const partyHtml = collapsible('party', '◎', 'PARTY', partyMembers.length + pets.length, partyInner);
+
+        // ── quests ──────────────────────────────────────────────
+        const activeQuests = Array.isArray(d.activeQuests) ? d.activeQuests : [];
+        const completedQuests = Array.isArray(d.completedQuests) ? d.completedQuests : [];
+        const renderQuest = (q, done) => {
+            if (typeof q === 'string') return `<div class="sv-list-item"><span class="sv-li-name">${e(q)}</span></div>`;
+            const name = q.name || q.title || '';
+            const pri = q.priority ? `<span class="sv-tag sv-tag-${q.priority}">${e(q.priority)}</span>` : '';
+            const desc = q.description || q.desc || q.objective || '';
+            return `<div class="sv-list-item">${done ? '<span class="sv-quest-done">✔</span>' : ''}<span class="sv-li-name">${e(name)}</span>${pri}${desc ? `<span class="sv-li-sub">${e(desc)}</span>` : ''}</div>`;
+        };
+        const questsInner = `
+            ${activeQuests.length ? '<div class="sv-sub-label">ACTIVE</div>' + activeQuests.map(q => renderQuest(q, false)).join('') : ''}
+            ${completedQuests.length ? '<div class="sv-sub-label">COMPLETED</div>' + completedQuests.map(q => renderQuest(q, true)).join('') : ''}
+            ${(!activeQuests.length && !completedQuests.length) ? '<div class="sv-empty-list">No quests.</div>' : ''}`;
+        const questsHtml = collapsible('quests', '◇', 'QUESTS', activeQuests.length + completedQuests.length, questsInner);
+
+        // ── magic ───────────────────────────────────────────────
+        const spells = Array.isArray(d.spells) ? d.spells : [];
+        const renderSpell = sp => {
+            if (typeof sp === 'string') return `<div class="sv-list-item"><span class="sv-li-name">${e(sp)}</span></div>`;
+            const name = sp.name || sp.spellName || '';
+            const school = sp.school ? `<span class="sv-spell-school sv-spell-${sp.school}">${e(sp.school)}</span>` : '';
+            const meta = [sp.cost && `Cost: ${sp.cost}`, sp.level && `Lv.${sp.level}`, sp.description].filter(Boolean).map(e).join(' · ');
+            return `<div class="sv-list-item"><span class="sv-li-name">${e(name)}</span>${school}${meta ? `<span class="sv-li-sub">${meta}</span>` : ''}</div>`;
+        };
+        const magicStats = [
+            d.manaRegen !== undefined && `Mana Regen/Turn: ${d.manaRegen}`,
+            d.spellPower !== undefined && `Spell Power: ${d.spellPower}`,
+            d.magicResist !== undefined && `Magic Resist: ${d.magicResist}`,
+        ].filter(Boolean);
+        const magicInner = `
+            ${magicStats.length ? '<div class="sv-sub-label">MANA MANAGEMENT</div><div class="sv-magic-stats">' + magicStats.map(s => `<span class="sv-magic-stat">${e(s)}</span>`).join('') + '</div>' : ''}
+            ${spells.length ? '<div class="sv-sub-label">SPELLBOOK</div>' + spells.map(renderSpell).join('') : ''}
+            ${d.magicNotes ? `<div class="sv-sub-label">MAGICAL NOTES</div><div class="sv-textarea-body">${e(d.magicNotes)}</div>` : ''}
+            ${(!spells.length && !magicStats.length) ? '<div class="sv-empty-list">No spells.</div>' : ''}`;
+        const magicHtml = collapsible('magic', '◈', 'MAGIC', spells.length, magicInner);
+
+        // ── achievements ─────────────────────────────────────────
+        const achievements = Array.isArray(d.achievements) ? d.achievements : [];
+        const achHtml = collapsible('achievements', '★', 'ACHIEVEMENTS', achievements.length,
+            achievements.map(a => {
+                if (typeof a === 'string') return `<div class="sv-list-item sv-li-achievement"><span class="sv-li-name">★ ${e(a)}</span></div>`;
+                const rarity = a.rarity ? `<span class="sv-rarity sv-rarity-${a.rarity}">${e(a.rarity)}</span>` : '';
+                return `<div class="sv-list-item sv-li-achievement"><span class="sv-li-name">★ ${e(a.name || '')}</span>${rarity}${a.description ? `<span class="sv-li-sub">${e(a.description)}</span>` : ''}</div>`;
+            }).join('')
+        );
+
+        // ── map ─────────────────────────────────────────────────
+        const areas = Array.isArray(d.areas) ? d.areas : [];
+        const mapInner = `
+            <div class="sv-fields-grid" style="grid-template-columns:1fr 1fr">
+                ${field('BOSS ENCOUNTERED', d.bossName)}
+                ${field('BOSS STATUS', d.bossStatus)}
+            </div>
+            ${areas.length ? '<div class="sv-sub-label">EXPLORED AREAS</div>' + areas.map(a => {
+            const name = typeof a === 'string' ? a : (a.name || '');
+            const status = typeof a === 'object' ? (a.status || '') : '';
+            return `<div class="sv-list-item"><span class="sv-li-name">${e(name)}</span>${status ? `<span class="sv-li-sub">${e(status)}</span>` : ''}</div>`;
+        }).join('') : ''}
+            ${d.mapNotes ? `<div class="sv-sub-label">MAP NOTES</div><div class="sv-textarea-body">${e(d.mapNotes)}</div>` : ''}`;
+        const mapHtml = collapsible('map', '⊕', 'MAP', areas.length, mapInner);
+
+        // ── safe room ───────────────────────────────────────────
+        const srUpgrades = [
+            ['Food Box (Kitchen)', d.upgradeFood],
+            ['Storage Unit', d.upgradeStorage],
+            ['De-Sleeving Box', d.upgradeDeSleeve],
+            ['Deity's Box',             d.upgradeDeity],
+            ['Demolition Workshop', d.upgradeWorkshop],
+                ['Second Scratch Pad', d.upgradeScratchpad],
+            ];
+        const bedroomList = Array.isArray(d.bedroomUpgrades) ? d.bedroomUpgrades : [];
+        const trainingList = Array.isArray(d.trainingRooms) ? d.trainingRooms : [];
+        const craftingList = Array.isArray(d.craftingTables) ? d.craftingTables : [];
+        const fanEntries = Array.isArray(d.fanEntries) ? d.fanEntries : [];
+
+        const safeRoomInner = `
+            <div class="sv-sr-grid">
+                ${field('ROOM TIER', d.safeRoomTier)}
+                ${field('TITHE / OFFERING', d.safeRoomTithe)}
+                ${field('SPONSOR NAME', d.sponsorName)}
+                ${field('SPONSOR STATUS', d.sponsorStatus)}
+                ${field('CONTRACT VALUE', d.sponsorValue)}
+                ${field('PATRON NAME', d.patronName)}
+                ${field('PATRON PERK', d.patronPerk)}
+            </div>
+            <div class="sv-sub-label">GENERAL UPGRADES</div>
+            <div class="sv-upgrades-grid">
+                ${srUpgrades.map(([l, v]) => check(l, v)).join('')}
+            </div>
+            ${d.safeRoomNotes ? `<div class="sv-sub-label">GENERAL NOTES</div><div class="sv-textarea-body">${e(d.safeRoomNotes)}</div>` : ''}
+            ${d.sponsorNotes ? `<div class="sv-sub-label">SPONSOR NOTES</div><div class="sv-textarea-body">${e(d.sponsorNotes)}</div>` : ''}
+            ${d.patronNotes ? `<div class="sv-sub-label">PATRON NOTES</div><div class="sv-textarea-body">${e(d.patronNotes)}</div>` : ''}
+            ${bedroomList.length ? '<div class="sv-sub-label">BEDROOM UPGRADES</div>' + bedroomList.map(u => `<div class="sv-list-item"><span class="sv-li-name">${e(u.name || u)}</span>${u.bonus ? `<span class="sv-li-sub">${e(u.bonus)}</span>` : ''}</div>`).join('') : ''}
+            ${trainingList.length ? '<div class="sv-sub-label">TRAINING ROOMS</div>' + trainingList.map(u => `<div class="sv-list-item"><span class="sv-li-name">${e(u.name || u)}</span>${u.bonus ? `<span class="sv-li-sub">${e(u.bonus)}</span>` : ''}</div>`).join('') : ''}
+            ${craftingList.length ? '<div class="sv-sub-label">CRAFTING TABLES</div>' + craftingList.map(u => `<div class="sv-list-item"><span class="sv-li-name">${e(u.name || u)}</span></div>`).join('') : ''}
+            ${(d.viewers || d.fameTier) ? `
+                <div class="sv-sub-label">SOCIAL / FAN METRICS</div>
+                <div class="sv-fields-grid" style="grid-template-columns:1fr 1fr">
+                    ${field('VIEWERS', d.viewers)}
+                    ${field('RATING', d.rating)}
+                    ${field('TOTAL FANS', d.totalFans)}
+                    ${field('HATERS', d.haters)}
+                    ${field('FAME TIER', d.fameTier)}
+                </div>
+                ${d.socialNotes ? `<div class="sv-textarea-body" style="margin-top:.5rem">${e(d.socialNotes)}</div>` : ''}
+            ` : ''}
+            ${fanEntries.length ? '<div class="sv-sub-label">FAN BOARD</div>' + fanEntries.slice(-20).reverse().map(f => {
+            const typeIcons = { fan: '💬', donation: '💰', threat: '⚠', sponsor: '⬡', hater: '👁' };
+            return `<div class="sv-list-item"><span class="sv-li-name">${typeIcons[f.type] || '💬'} <strong>${e(f.source || f.name || '?')}</strong></span><span class="sv-li-sub">${e(f.message || f.msg || '')}</span></div>`;
+        }).join('') : ''}`;
+
+        const safeRoomCount = srUpgrades.filter(([, v]) => v).length;
+        const safeRoomHtml = collapsible('saferoom', '⬡', 'SAFE ROOM', safeRoomCount, safeRoomInner);
+
+        // ── factions ─────────────────────────────────────────────
+        const factions = Array.isArray(d.factions) ? d.factions : [];
+        const factionsHtml = collapsible('factions', '⚑', 'FACTIONS', factions.length,
+            factions.map(f => {
+                if (typeof f === 'string') return `<div class="sv-list-item"><span class="sv-li-name">${e(f)}</span></div>`;
+                const name = f.name || '';
+                const standing = f.standing !== undefined ? f.standing : '';
+                const notes = f.notes || '';
+                const bar = (standing !== '') ? `<div class="sv-faction-bar-wrap"><div class="sv-faction-bar" style="width:${Math.min(100, Math.max(0, (Number(standing) + 100) / 2))}%"></div></div><span class="sv-faction-num">${standing}</span>` : '';
+                return `<div class="sv-list-item"><span class="sv-li-name">${e(name)}</span>${bar}${notes ? `<span class="sv-li-sub">${e(notes)}</span>` : ''}</div>`;
+            }).join('')
+        );
+
+        // ── assemble ─────────────────────────────────────────────
+        el.innerHTML = `
+            <div class="sv-top-grid">
+                <div style="display:flex;flex-direction:column;gap:.75rem">
+                    ${identityHtml}
+                    ${personalityHtml}
+                </div>
+                <div style="display:flex;flex-direction:column;gap:.75rem">
+                    ${vitalsHtml}
+                    ${combatHtml}
+                    ${statusHtml}
+                </div>
+            </div>
+            ${gearHtml}
+            ${lootHtml}
+            <div class="sv-sections-list">
+                ${invHtml}
+                ${skillsHtml}
+                ${partyHtml}
+                ${questsHtml}
+                ${magicHtml}
+                ${achHtml}
+                ${mapHtml}
+                ${safeRoomHtml}
+                ${factionsHtml}
+            </div>`;
+    }
+
+    function svToggle(id) {
+        const body = document.querySelector(`#svc-${id} .sv-coll-body`);
+        const icon = document.querySelector(`#svc-${id} .sv-coll-icon`);
+        if (!body) return;
+        body.classList.toggle('hidden');
+        if (icon) icon.textContent = body.classList.contains('hidden') ? '▸' : '▾';
+    }
+
     function inspectorFormatJson() {
         const editor = document.getElementById('jsonEditor');
         const status = document.getElementById('jsonStatus');
@@ -633,33 +696,23 @@ const Admin = (() => {
         }
         status.textContent = 'Saving…';
         const res = await api({ action: 'edit_sheet', cid: inspectorCharId, sheet_json: raw });
-        if (res.success) {
-            status.className = 'json-status ok';
-            status.textContent = '✓ Saved successfully';
-            // Re-parse and refresh the sheet view
-            try {
-                inspectorSheetData = JSON.parse(raw);
-                renderSheetView(inspectorSheetData);
-            } catch { /* ignore */ }
-        } else {
-            status.className = 'json-status error';
-            status.textContent = '✕ ' + (res.message || 'Error');
-        }
+        status.className = res.success ? 'json-status ok' : 'json-status error';
+        status.textContent = res.success ? '✓ Saved successfully' : '✕ ' + (res.message || 'Error');
     }
 
     // Jump to inspector from crawlers tab
     async function jumpToInspector(uid, cid, charName) {
+        // Switch to rawdata tab
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        document.querySelector('[data-tab="inspector"]').classList.add('active');
-        document.getElementById('tab-inspector').classList.add('active');
+        document.querySelector('[data-tab="rawdata"]').classList.add('active');
+        document.getElementById('tab-rawdata').classList.add('active');
 
         await loadInspectorUsers();
         document.getElementById('inspectorUserSelect').value = uid;
         await inspectorLoadChars();
         document.getElementById('inspectorCharSelect').value = cid;
-        await inspectorLoadSheet();
-        setInspectorMode('sheet');
+        await inspectorLoadJson();
     }
 
     // ═══════════════════════════════════════════════════════
@@ -679,7 +732,7 @@ const Admin = (() => {
 
         data.logs.forEach(log => {
             const tr = document.createElement('tr');
-            const actionClass = (log.action || '').toLowerCase();
+            const actionClass = (log.action || '').replace(/_/g, '_').toLowerCase();
             tr.innerHTML = `
                 <td class="audit-ts">${fmtDate(log.created_at)}</td>
                 <td><span class="audit-action ${actionClass}">${esc(log.action)}</span></td>
@@ -690,7 +743,8 @@ const Admin = (() => {
         });
 
         auditOffset += data.logs.length;
-        document.getElementById('auditLoadMore').classList.toggle('hidden', auditOffset >= auditTotal);
+        const loadMore = document.getElementById('auditLoadMore');
+        loadMore.classList.toggle('hidden', auditOffset >= auditTotal);
     }
 
     function loadAuditMore() { loadAudit(false); }
@@ -773,6 +827,7 @@ const Admin = (() => {
         }
     }
 
+    // ── Generic modal close ──────────────────────────────────
     function closeModal(id) {
         document.getElementById(id)?.classList.add('hidden');
     }
@@ -792,21 +847,17 @@ const Admin = (() => {
             m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); });
         });
 
-        // View toggle buttons
-        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
-            btn.addEventListener('click', () => setInspectorMode(btn.dataset.mode));
-        });
-
+        // Load stats on boot
         loadStats();
     }
 
     return {
         init,
         loadStats, loadCrawlers, filterCrawlers, toggleChars,
-        inspectorLoadChars, inspectorLoadJson: inspectorLoadSheet, inspectorLoadSheet,
+        inspectorLoadChars, inspectorLoadJson, inspectorLoadSheet,
         inspectorFormatJson, inspectorSaveJson,
+        setInspectorView, svToggle,
         jumpToInspector,
-        setInspectorMode, toggleCollapse,
         loadAudit, loadAuditMore,
         openBanModal, confirmBan, unbanUser,
         openDeleteUserModal, confirmDeleteUser,
